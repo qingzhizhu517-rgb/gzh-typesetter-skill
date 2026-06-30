@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>微信公众号一键排版 - 可视化编辑器</title>
+  <meta name="description" content="微信公众号HTML一键排版工具，提供实时可视化调节与微信渲染模拟，支持无缝导出公众号规范代码。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <div class="header-logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="logo-icon"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 6v12"/><path d="M8 10h8"/><path d="M8 14h8"/></svg>
+        <span class="logo-text">GZH <span class="logo-badge">Typesetter</span></span>
+      </div>
+      <div class="header-actions">
+        <button id="theme-toggle" class="icon-button" title="切换深色/浅色模式">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sun-icon"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+        <a href="https://github.com/qingzhizhu517-rgb/gzh-typesetter-skill" target="_blank" class="github-link">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+        </a>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <!-- 🚀 左侧：输入编辑器与控制面板 -->
+      <section class="editor-section">
+        <div class="card editor-card">
+          <div class="card-header">
+            <h3>编辑与解析</h3>
+            <span class="card-subtitle">支持普通文本或 Markdown</span>
+          </div>
+          <div class="card-body">
+            <textarea id="raw-input" placeholder="请在此处粘贴或输入您的文章内容...
+支持 Markdown 语法，如：
+# 文章大标题
+## 二级标题
+这是正文内容，可以加粗 **重点词汇**。
+> 这是一个优雅的引用块。
+![](https://images.unsplash.com/photo-1579546929518-9e396f3cc809)
+- 无序列表项 1
+- 无序列表项 2"></textarea>
+          </div>
+        </div>
+
+        <div class="card control-card">
+          <div class="card-header">
+            <h3>排版参数调节</h3>
+            <button id="reset-btn" class="text-button">恢复默认</button>
+          </div>
+          <div class="card-body">
+            <!-- 预设主题 -->
+            <div class="control-group">
+              <label class="group-title">快捷主题模板</label>
+              <div class="theme-preset-grid">
+                <button class="theme-preset-btn active" data-theme="default">
+                  <span class="color-dot text-default"></span> 科技蓝
+                </button>
+                <button class="theme-preset-btn" data-theme="warm">
+                  <span class="color-dot text-warm"></span> 珊瑚粉
+                </button>
+                <button class="theme-preset-btn" data-theme="forest">
+                  <span class="color-dot text-forest"></span> 森林绿
+                </button>
+                <button class="theme-preset-btn" data-theme="gold">
+                  <span class="color-dot text-gold"></span> 奢华金
+                </button>
+              </div>
+            </div>
+
+            <!-- 滑动调节滑块 -->
+            <div class="control-grid">
+              <div class="control-item">
+                <div class="slider-header">
+                  <label for="font-size-slider">正文字号</label>
+                  <span id="font-size-val">15px</span>
+                </div>
+                <input type="range" id="font-size-slider" min="12" max="20" step="1" value="15">
+              </div>
+
+              <div class="control-item">
+                <div class="slider-header">
+                  <label for="line-height-slider">行间距</label>
+                  <span id="line-height-val">1.75</span>
+                </div>
+                <input type="range" id="line-height-slider" min="1.4" max="2.4" step="0.05" value="1.75">
+              </div>
+
+              <div class="control-item">
+                <div class="slider-header">
+                  <label for="letter-spacing-slider">字间距</label>
+                  <span id="letter-spacing-val">0.5px</span>
+                </div>
+                <input type="range" id="letter-spacing-slider" min="0" max="3" step="0.1" value="0.5">
+              </div>
+
+              <div class="control-item">
+                <div class="slider-header">
+                  <label for="margin-slider">页面左右边距</label>
+                  <span id="margin-val">16px</span>
+                </div>
+                <input type="range" id="margin-slider" min="8" max="32" step="2" value="16">
+              </div>
+
+              <div class="control-item">
+                <div class="slider-header">
+                  <label for="border-radius-slider">图片圆角</label>
+                  <span id="border-radius-val">8px</span>
+                </div>
+                <input type="range" id="border-radius-slider" min="0" max="24" step="2" value="8">
+              </div>
+
+              <div class="control-item checkbox-item">
+                <label for="indent-checkbox">首行缩进</label>
+                <input type="checkbox" id="indent-checkbox" class="ios-switch">
+              </div>
+            </div>
+
+            <!-- 配色选取 -->
+            <div class="color-picker-grid">
+              <div class="color-picker-item">
+                <label for="color-title">标题颜色</label>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="color-title" value="#2c3e50">
+                  <span class="color-hex">#2c3e50</span>
+                </div>
+              </div>
+              <div class="color-picker-item">
+                <label for="color-text">正文颜色</label>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="color-text" value="#3f3f3f">
+                  <span class="color-hex">#3f3f3f</span>
+                </div>
+              </div>
+              <div class="color-picker-item">
+                <label for="color-accent">强调/品牌色</label>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="color-accent" value="#1e88e5">
+                  <span class="color-hex">#1e88e5</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 📱 右侧：微信模拟预览器 -->
+      <section class="preview-section">
+        <div class="tabs-container">
+          <div class="tabs">
+            <button class="tab-btn active" data-tab="preview">微信效果预览</button>
+            <button class="tab-btn" data-tab="html-code">公众号 HTML 源码</button>
+          </div>
+          <button id="copy-btn" class="primary-button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            复制排版代码
+          </button>
+        </div>
+
+        <div class="tab-content active" id="tab-preview">
+          <!-- 模拟手机壳 -->
+          <div class="phone-wrapper">
+            <div class="phone-notch"></div>
+            <div class="phone-status-bar">
+              <span class="status-time">9:41</span>
+              <div class="status-icons">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9zm0 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+              </div>
+            </div>
+            <div class="phone-navigation-bar">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="back-arrow"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              <div class="navigation-title">微信公众号文章预览</div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="more-dots"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+            </div>
+            
+            <div class="phone-screen" id="preview-frame">
+              <!-- 这里将被注入排版好的内联 HTML -->
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-content" id="tab-html-code">
+          <div class="code-editor-container">
+            <div class="code-header">
+              <span>WeChat Inline-Styled HTML</span>
+              <span class="code-badge">Ready to Paste</span>
+            </div>
+            <pre><code id="html-output-code"></code></pre>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- 复制成功的 Toast 提示 -->
+    <div id="toast" class="toast">复制成功！请直接粘贴到公众号编辑器</div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
