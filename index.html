@@ -4,13 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>微信公众号一键排版 - 可视化编辑器</title>
-  <meta name="description" content="微信公众号HTML一键排版工具，提供实时可视化调节与微信渲染模拟，支持无缝导出公众号规范代码。">
+  <meta name="description" content="微信公众号一键排版工具，提供实时可视化调节与微信渲染模拟，支持一键复制富文本直接粘贴。">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <!-- 🪐 引入 GSAP 动画库 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 </head>
 <body>
+  <!-- 🌌 动态高级背景容器 -->
+  <div id="bg-canvas-container" class="bg-canvas-container"></div>
+
   <div class="app-container">
     <!-- 🧭 顶部导航栏 -->
     <header class="app-header">
@@ -18,6 +23,18 @@
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="logo-icon"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 6v12"/><path d="M8 10h8"/><path d="M8 14h8"/></svg>
         <span class="logo-text">GZH <span class="logo-badge">Typesetter</span></span>
       </div>
+      
+      <!-- 🎨 顶部高级背景模板切换器 -->
+      <div class="bg-selector-wrapper">
+        <span class="bg-selector-label">环境背景：</span>
+        <div class="bg-preset-grid">
+          <button class="bg-preset-btn active" data-bg="aura">极光弥散</button>
+          <button class="bg-preset-btn" data-bg="grid">光影网格</button>
+          <button class="bg-preset-btn" data-bg="neon">赛博霓虹</button>
+          <button class="bg-preset-btn" data-bg="glass">微光磨砂</button>
+        </div>
+      </div>
+
       <div class="header-actions">
         <button id="theme-toggle" class="icon-button" title="切换深色/浅色模式">
           <!-- 动态注入太阳/月亮图标 -->
@@ -30,7 +47,7 @@
 
     <!-- 💻 主操作区 -->
     <main class="app-main">
-      <!-- 🛠️ 左侧面板：统一的卡片与标签页系统 -->
+      <!-- 🛠️ 左侧面板 -->
       <section class="left-panel-section">
         <div class="card unified-card">
           <!-- 标签页头部 -->
@@ -54,12 +71,12 @@
             <!-- ✍️ 标签页 1：文章编辑 -->
             <div class="left-tab-content active" id="left-tab-content">
               <div class="panel-header">
-                <span class="panel-subtitle">粘贴您的文本或 Markdown，右侧手机框将实时渲染。</span>
+                <span class="panel-subtitle">在此处粘贴您的文章。修改正文将同步渲染右侧微信预览。</span>
                 <button id="import-local-btn" class="text-button" title="载入并还原当前目录下 output.html 的 AI 排版结果">📥 导入 output.html</button>
               </div>
               <div class="textarea-wrapper">
                 <textarea id="raw-input" placeholder="请在此处粘贴或输入您的文章正文...
-支持标准 Markdown 语法，如标题、引用、图片、加粗、列表等。"></textarea>
+支持标准 Markdown 语法。"></textarea>
               </div>
             </div>
 
@@ -231,26 +248,18 @@
         </div>
       </section>
 
-      <!-- 📱 右侧面板：手机渲染预览与源码导出 -->
+      <!-- 📱 右侧面板：手机渲染预览 -->
       <section class="preview-section">
-        <!-- 标签与复制栏 -->
         <div class="tabs-container">
-          <div class="tabs">
-            <button class="tab-btn active" data-tab="preview">微信效果预览</button>
-            <button class="tab-btn" data-tab="html-code">公众号 HTML 源码</button>
+          <div class="tabs-title-area">
+            <span class="wechat-preview-title">微信效果预览 (iPhone 17)</span>
           </div>
-          <div class="action-buttons-group">
-            <button id="copy-rich-btn" class="primary-button rich-copy-btn" title="一键复制到剪贴板，可直接在公众号正文粘贴">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
-              一键复制富文本
-            </button>
-            <button id="copy-btn" class="secondary-btn" title="复制内联样式的原生 HTML 代码">
-              复制代码
-            </button>
-          </div>
+          <button id="copy-rich-btn" class="primary-button rich-copy-btn-large" title="一键复制排版好的内容，可以直接在公众号正文粘贴">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+            一键复制富文本 (直贴)
+          </button>
         </div>
 
-        <!-- 预览手机壳区 -->
         <div class="tab-content active" id="tab-preview">
           <!-- 📱 iPhone 17 高阶概念设计机型 -->
           <div class="phone-wrapper iphone17">
@@ -276,7 +285,7 @@
             <!-- 微信内嵌导航栏 -->
             <div class="phone-navigation-bar">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="back-arrow"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-              <div class="navigation-title">微信公众号预览</div>
+              <div class="navigation-title">微信公众号正文</div>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="more-dots"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
             </div>
             
@@ -289,22 +298,11 @@
             <div class="phone-home-indicator"></div>
           </div>
         </div>
-
-        <!-- 源码代码页 -->
-        <div class="tab-content" id="tab-html-code">
-          <div class="code-editor-container">
-            <div class="code-header">
-              <span>WECHAT COMPATIBLE HTML</span>
-              <span class="code-badge">Ready to Paste</span>
-            </div>
-            <pre><code id="html-output-code"></code></pre>
-          </div>
-        </div>
       </section>
     </main>
 
     <!-- 复制成功的 Toast 气泡 -->
-    <div id="toast" class="toast">复制富文本成功！可以直接在公众号后台粘贴</div>
+    <div id="toast" class="toast">复制富文本成功！可以直接在公众号正文粘贴</div>
   </div>
 
   <script src="app.js"></script>

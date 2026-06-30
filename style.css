@@ -9,8 +9,8 @@
 
   /* 配色方案 (默认 Light Mode) */
   --bg-app: #f5f7fb;
-  --bg-card: #ffffff;
-  --border-color: rgba(0, 0, 0, 0.06);
+  --bg-card: rgba(255, 255, 255, 0.75);
+  --border-color: rgba(0, 0, 0, 0.05);
   --border-active: #4f46e5;
   --text-main: #111827;
   --text-muted: #6b7280;
@@ -21,13 +21,13 @@
   --accent: #1e88e5;
   
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.02);
-  --shadow-md: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.03);
+  --shadow-md: 0 10px 30px -5px rgba(0,0,0,0.05), 0 8px 15px -6px rgba(0,0,0,0.02);
   --shadow-lg: 0 20px 35px -5px rgba(0,0,0,0.08), 0 10px 20px -8px rgba(0,0,0,0.04);
-  --shadow-phone: 0 35px 60px -15px rgba(0,0,0,0.18), 0 0 50px rgba(0,0,0,0.02);
+  --shadow-phone: 0 35px 70px -15px rgba(0,0,0,0.15), 0 0 50px rgba(0,0,0,0.02);
   
   --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 22px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
   
   --phone-screen-bg: #ffffff;
   --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -35,9 +35,9 @@
 }
 
 [data-theme="dark"] {
-  --bg-app: #080b11;
-  --bg-card: #101524;
-  --border-color: rgba(255, 255, 255, 0.05);
+  --bg-app: #07090e;
+  --bg-card: rgba(16, 21, 36, 0.75);
+  --border-color: rgba(255, 255, 255, 0.04);
   --border-active: #6366f1;
   --text-main: #f9fafb;
   --text-muted: #9ca3af;
@@ -47,7 +47,7 @@
   --primary-light: rgba(99, 102, 241, 0.12);
   
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.15);
-  --shadow-md: 0 10px 25px -5px rgba(0,0,0,0.25), 0 8px 10px -6px rgba(0,0,0,0.2);
+  --shadow-md: 0 10px 30px -5px rgba(0,0,0,0.25), 0 8px 15px -6px rgba(0,0,0,0.2);
   --shadow-lg: 0 25px 40px -5px rgba(0,0,0,0.35), 0 10px 20px -8px rgba(0,0,0,0.3);
   
   --phone-screen-bg: #1a1a1c;
@@ -71,7 +71,80 @@ body {
   overflow-x: hidden;
 }
 
-/* 🔗 App Layout */
+/* 🌌 GSAP 动态画布背景样式 */
+.bg-canvas-container {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: -2;
+  overflow: hidden;
+  pointer-events: none;
+  transition: background-color var(--transition-normal);
+}
+
+/* 模板 1: 极光弥散 */
+.aura-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  mix-blend-mode: multiply;
+  opacity: 0.35;
+}
+[data-theme="dark"] .aura-blob {
+  mix-blend-mode: screen;
+  opacity: 0.18;
+  filter: blur(120px);
+}
+
+/* 模板 2: 光影网格 */
+.grid-bg-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-size: 32px 32px;
+  background-image: radial-gradient(rgba(0,0,0,0.06) 1px, transparent 1px);
+  transition: background-image var(--transition-normal);
+}
+[data-theme="dark"] .grid-bg-overlay {
+  background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+}
+
+.grid-spotlight {
+  position: absolute;
+  width: 450px;
+  height: 450px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 模板 3: 赛博霓虹 */
+.neon-beam {
+  position: absolute;
+  width: 2px;
+  background: linear-gradient(180deg, transparent, var(--primary), #ec4899, transparent);
+  opacity: 0.4;
+  border-radius: 10px;
+  box-shadow: 0 0 12px var(--primary);
+}
+
+/* 模板 4: 微光磨砂 */
+.glass-shape {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 30px;
+  box-shadow: 0 10px 40px -10px rgba(0,0,0,0.05);
+}
+[data-theme="dark"] .glass-shape {
+  background: rgba(255, 255, 255, 0.015);
+  border-color: rgba(255,255,255,0.03);
+}
+
+/* 🔗 App Container & Glassmorphism Panels */
 .app-container {
   display: flex;
   flex-direction: column;
@@ -89,8 +162,9 @@ body {
   padding: 14px 28px;
   background-color: var(--bg-card);
   border-bottom: 1px solid var(--border-color);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   z-index: 10;
-  box-shadow: var(--shadow-sm);
   transition: background-color var(--transition-normal), border-color var(--transition-normal);
 }
 
@@ -121,6 +195,56 @@ body {
   border-radius: 10px;
   margin-left: 2px;
   text-transform: uppercase;
+}
+
+/* 🎨 顶部背景选择器 */
+.bg-selector-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: rgba(0,0,0,0.04);
+  padding: 3px;
+  border-radius: 30px;
+  border: 1px solid var(--border-color);
+  transition: all var(--transition-normal);
+}
+
+[data-theme="dark"] .bg-selector-wrapper {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.bg-selector-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  padding-left: 8px;
+}
+
+.bg-preset-grid {
+  display: flex;
+  gap: 2px;
+}
+
+.bg-preset-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.bg-preset-btn:hover {
+  color: var(--text-main);
+}
+
+.bg-preset-btn.active {
+  background-color: var(--bg-app);
+  color: var(--primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .header-actions {
@@ -163,7 +287,7 @@ body {
 /* 💻 Main Layout */
 .app-main {
   display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
+  grid-template-columns: 1.12fr 0.88fr;
   gap: 28px;
   padding: 24px 28px;
   flex: 1;
@@ -194,17 +318,17 @@ body {
   box-shadow: var(--shadow-md);
   border-radius: var(--radius-md);
   overflow: hidden;
+  background-color: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
 }
 
 /* 标签页头部切换栏 */
 .card-tabs-header {
   display: flex;
-  background-color: rgba(0, 0, 0, 0.02);
+  background-color: rgba(0, 0, 0, 0.01);
   border-bottom: 1px solid var(--border-color);
-}
-
-[data-theme="dark"] .card-tabs-header {
-  background-color: rgba(255, 255, 255, 0.01);
 }
 
 .left-tab-btn {
@@ -213,7 +337,7 @@ body {
   border: none;
   border-bottom: 2px solid transparent;
   color: var(--text-muted);
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
   padding: 16px 12px;
   cursor: pointer;
@@ -226,20 +350,18 @@ body {
 
 .left-tab-btn:hover {
   color: var(--text-main);
-  background-color: rgba(0,0,0,0.01);
 }
 
 .left-tab-btn.active {
   color: var(--primary);
   border-bottom-color: var(--primary);
-  background-color: var(--bg-card);
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 /* 标签页内容体 */
 .card-tabs-body {
   flex: 1;
   overflow-y: auto;
-  background-color: var(--bg-card);
 }
 
 .left-tab-content {
@@ -289,7 +411,7 @@ body {
 }
 
 [data-theme="dark"] .textarea-wrapper {
-  background-color: rgba(255,255,255,0.01);
+  background-color: rgba(255,255,255,0.015);
 }
 
 .textarea-wrapper:focus-within {
@@ -318,7 +440,7 @@ body {
   border: 1px solid rgba(79, 70, 229, 0.15);
   color: var(--primary);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 750;
   padding: 4px 10px;
   border-radius: 20px;
   cursor: pointer;
@@ -331,7 +453,7 @@ body {
 }
 
 .settings-panel {
-  background-color: rgba(0, 0, 0, 0.02);
+  background-color: rgba(0, 0, 0, 0.015);
   border: 1px dashed var(--border-color);
   border-radius: var(--radius-sm);
   padding: 16px;
@@ -340,10 +462,6 @@ body {
   max-height: 500px;
   overflow: hidden;
   opacity: 1;
-}
-
-[data-theme="dark"] .settings-panel {
-  background-color: rgba(255, 255, 255, 0.02);
 }
 
 .settings-panel.hidden {
@@ -377,7 +495,7 @@ body {
 }
 
 .input-field input, .input-field select {
-  background-color: rgba(0,0,0,0.02);
+  background-color: rgba(0,0,0,0.015);
   border: 1px solid var(--border-color);
   color: var(--text-main);
   padding: 10px 14px;
@@ -386,10 +504,6 @@ body {
   font-family: var(--font-sans);
   outline: none;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-}
-
-[data-theme="dark"] .input-field input, [data-theme="dark"] .input-field select {
-  background-color: rgba(255,255,255,0.02);
 }
 
 .input-field input:focus, .input-field select:focus {
@@ -516,7 +630,7 @@ body {
 }
 
 .theme-preset-btn {
-  background: rgba(0,0,0,0.02);
+  background: rgba(0,0,0,0.015);
   border: 1px solid var(--border-color);
   color: var(--text-main);
   padding: 10px 8px;
@@ -529,10 +643,6 @@ body {
   justify-content: center;
   gap: 6px;
   transition: all var(--transition-fast);
-}
-
-[data-theme="dark"] .theme-preset-btn {
-  background-color: rgba(255,255,255,0.01);
 }
 
 .theme-preset-btn:hover {
@@ -692,10 +802,6 @@ input[type=range]::-webkit-slider-thumb:hover {
   background-color: rgba(0,0,0,0.01);
 }
 
-[data-theme="dark"] .color-picker-wrapper {
-  background-color: rgba(255,255,255,0.01);
-}
-
 .color-picker-wrapper input[type=color] {
   -webkit-appearance: none;
   border: none;
@@ -749,7 +855,7 @@ input[type=range]::-webkit-slider-thumb:hover {
   border-color: var(--text-muted);
 }
 
-/* 📱 右侧模拟器/代码面板 */
+/* 📱 右侧模拟器/复制栏 */
 .preview-section {
   display: flex;
   flex-direction: column;
@@ -768,117 +874,59 @@ input[type=range]::-webkit-slider-thumb:hover {
   width: 100%;
 }
 
-.tabs {
+.tabs-title-area {
   display: flex;
-  gap: 6px;
+  align-items: center;
 }
 
-.tab-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  font-size: 13px;
-  font-weight: 600;
-  padding: 8px 14px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.tab-btn:hover {
+.wechat-preview-title {
+  font-size: 14px;
+  font-weight: 700;
   color: var(--text-main);
-}
-
-.tab-btn.active {
-  color: var(--primary);
-  background-color: var(--primary-light);
+  font-family: var(--font-sans);
 }
 
 /* 按钮组 */
 .action-buttons-group {
   display: flex;
   align-items: center;
-  gap: 10px;
 }
 
-.primary-button {
-  background: linear-gradient(135deg, var(--primary), #3b82f6);
+.rich-copy-btn-large {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
   border: none;
-  padding: 10px 18px;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-weight: 700;
+  padding: 11px 24px;
+  border-radius: 30px;
+  font-size: 13.5px;
+  font-weight: 750;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.2);
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.25);
   transition: all var(--transition-fast);
 }
 
-.primary-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.3);
-}
-
-.rich-copy-btn {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.18);
-}
-
-.rich-copy-btn:hover {
+.rich-copy-btn-large:hover {
+  transform: translateY(-1.5px);
   background: linear-gradient(135deg, #34d399 0%, #059669 100%);
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
 }
 
-.secondary-btn {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  color: var(--text-main);
-  padding: 10px 16px;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.secondary-btn:hover {
-  background-color: var(--bg-app);
-  border-color: var(--text-muted);
-}
-
-.text-button {
-  background: none;
-  border: none;
-  color: var(--primary);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: color var(--transition-fast);
-}
-
-.text-button:hover {
-  color: var(--primary-hover);
+.rich-copy-btn-large:active {
+  transform: translateY(1px);
 }
 
 .tab-content {
-  display: none;
+  display: flex;
   height: 100%;
   width: 100%;
   flex: 1;
   overflow: hidden;
 }
 
-.tab-content.active {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-/* 📱 手机模型外壳 (iPhone 17 概念设计 - 极高精美度) */
+/* 📱 手机模型外壳 (iPhone 17 概念设计 - 严格纵横比) */
 .phone-wrapper.iphone17 {
   background-color: #000000;
   border: 4px solid #2d2d30;
@@ -894,6 +942,7 @@ input[type=range]::-webkit-slider-thumb:hover {
   position: relative;
   overflow: hidden;
   transition: all var(--transition-normal);
+  background-clip: padding-box;
 }
 
 /* 呼吸光边框 */
@@ -1055,58 +1104,6 @@ input[type=range]::-webkit-slider-thumb:hover {
 
 [data-theme="dark"] .phone-home-indicator {
   background-color: rgba(255, 255, 255, 0.25);
-}
-
-/* 🧑‍💻 代码输出视图 */
-.code-editor-container {
-  width: 100%;
-  height: 100%;
-  background-color: #0c1017;
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(255,255,255,0.06);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.code-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 20px;
-  background-color: #151922;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-  color: #8b949e;
-  font-size: 11px;
-  font-family: var(--font-display);
-  font-weight: 600;
-  letter-spacing: 0.5px;
-}
-
-.code-badge {
-  background-color: rgba(56, 139, 253, 0.12);
-  color: #58a6ff;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 12px;
-}
-
-.code-editor-container pre {
-  margin: 0;
-  padding: 20px;
-  overflow: auto;
-  flex: 1;
-  text-align: left;
-}
-
-.code-editor-container code {
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 13px;
-  color: #e6edf3;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  word-break: break-all;
 }
 
 /* 💬 Toast 气泡通知 */

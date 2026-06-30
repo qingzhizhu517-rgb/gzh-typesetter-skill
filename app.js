@@ -6,8 +6,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // DOM 元素引用
   const rawInput = document.getElementById('raw-input');
   const previewFrame = document.getElementById('preview-frame');
-  const htmlOutputCode = document.getElementById('html-output-code');
-  const copyBtn = document.getElementById('copy-btn');
   const copyRichBtn = document.getElementById('copy-rich-btn');
   const themeToggle = document.getElementById('theme-toggle');
   const resetBtn = document.getElementById('reset-btn');
@@ -36,10 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // 预设主题按钮
   const presetButtons = document.querySelectorAll('.theme-preset-btn');
   
-  // 右侧 Tab 切换按钮
-  const tabButtons = document.querySelectorAll('.tab-btn');
-  const tabContents = document.querySelectorAll('.tab-content');
-
   // 左侧 Tab 切换按钮
   const leftTabButtons = document.querySelectorAll('.left-tab-btn');
   const leftTabContents = document.querySelectorAll('.left-tab-content');
@@ -57,6 +51,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const importLocalBtn = document.getElementById('import-local-btn');
   const aiLoading = document.getElementById('ai-loading');
   const aiLoadingText = document.getElementById('ai-loading-text');
+
+  // 🪐 顶部高级环境背景切换
+  const bgCanvasContainer = document.getElementById('bg-canvas-container');
+  const bgPresetButtons = document.querySelectorAll('.bg-preset-btn');
 
   // 📦 默认配置与主题映射
   const DEFAULT_CONFIG = {
@@ -121,17 +119,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // 1. 初始化配置与 API
   let currentConfig = { ...DEFAULT_CONFIG };
 
-  // 加载本地存储的 API 配置
   apiEndpointInput.value = localStorage.getItem('gzh_api_endpoint') || 'https://api.deepseek.com/v1';
   apiModelInput.value = localStorage.getItem('gzh_api_model') || 'deepseek-chat';
   apiKeyInput.value = localStorage.getItem('gzh_api_key') || '';
 
-  // API 折叠面板切换
   toggleApiSettings.addEventListener('click', () => {
     apiSettingsPanel.classList.toggle('hidden');
   });
 
-  // 保存 API 配置
   [apiEndpointInput, apiModelInput, apiKeyInput].forEach(input => {
     input.addEventListener('change', () => {
       localStorage.setItem('gzh_api_endpoint', apiEndpointInput.value.trim());
@@ -181,7 +176,6 @@ document.addEventListener('DOMContentLoaded', () => {
         continue;
       }
 
-      // 1. Markdown 主标题
       if (line.startsWith('# ')) {
         const titleText = formatInlineElements(line.substring(2));
         html += `<section style="margin: 0 0 24px 0; padding: 0 ${paddingX}; text-align: center;">
@@ -190,7 +184,6 @@ document.addEventListener('DOMContentLoaded', () => {
         continue;
       }
 
-      // 2. 二级标题
       if (line.startsWith('## ')) {
         const subTitleText = formatInlineElements(line.substring(3));
         html += `<section style="margin: 32px 0 16px 0; padding: 0 ${paddingX}; border-left: 4px solid ${accentColor}; padding-left: 12px;">
@@ -199,7 +192,6 @@ document.addEventListener('DOMContentLoaded', () => {
         continue;
       }
 
-      // 3. 三级小标题
       if (line.startsWith('### ')) {
         const smallTitleText = formatInlineElements(line.substring(4));
         html += `<section style="margin: 24px 0 12px 0; padding: 0 ${paddingX};">
@@ -208,7 +200,6 @@ document.addEventListener('DOMContentLoaded', () => {
         continue;
       }
 
-      // 4. 引用块
       if (line.startsWith('> ')) {
         const quoteContent = formatInlineElements(line.substring(2));
         html += `<section style="margin: 16px ${paddingX}; padding: 14px 18px; background-color: #f7f9fc; border-left: 3px solid ${accentColor}; border-radius: 4px;">
@@ -217,7 +208,6 @@ document.addEventListener('DOMContentLoaded', () => {
         continue;
       }
 
-      // 5. 解析图片
       const imgMatch = line.match(/^!\[(.*?)\]\((.*?)\)$/);
       if (imgMatch) {
         const altText = imgMatch[1];
@@ -228,13 +218,11 @@ document.addEventListener('DOMContentLoaded', () => {
         continue;
       }
 
-      // 6. 分割线
       if (line === '---' || line === '***') {
         html += `<section style="margin: 32px ${paddingX}; border-top: 1px dashed ${accentColor}; opacity: 0.4;"></section>`;
         continue;
       }
 
-      // 7. 列表项目
       const isUnorderedItem = line.startsWith('- ') || line.startsWith('* ');
       const isOrderedItem = /^\d+\.\s/.test(line);
 
@@ -252,7 +240,6 @@ document.addEventListener('DOMContentLoaded', () => {
         continue;
       }
 
-      // 8. 普通段落
       const paragraphText = formatInlineElements(line);
       html += `<section style="margin: 0 0 16px 0; padding: 0 ${paddingX};">
                 <p style="font-size: ${pSize}; color: ${pColor}; line-height: ${lHeight}; letter-spacing: ${lSpacing}; text-align: justify; ${indent} margin: 0;">${paragraphText}</p>
@@ -419,13 +406,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (markdown) {
         rawInput.value = markdown;
         render();
-        // 自动切回到“文章编辑”标签页
         document.querySelector('.left-tab-btn[data-left-tab="content"]').click();
         showToast('📥 成功从本地 output.html 恢复排版与图片！');
       } else {
         previewFrame.innerHTML = htmlText;
         htmlOutputCode.textContent = htmlText;
-        rawInput.value = '/* 无法反向解析为 Markdown，已直接载入 HTML 渲染效果。请在右侧直接预览或复制代码。 */';
+        rawInput.value = '/* 已载入 HTML 渲染效果，请在右侧预览。 */';
         showToast('📥 已成功载入 HTML 源码预览！');
       }
     } catch (err) {
@@ -473,7 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
 1. 请保持文章的核心意思和语句基本完整，但可以使用更生动、适合公众号阅读的表达。
 2. 重新梳理层次：添加醒目的分级标题，并在标题前适当加上一两个匹配的 Emoji 图标。
 3. 突出核心词汇：将重要的重点词汇包裹在 **加粗** 语法中。
-4. 穿写图片：根据上下文，在合适且均衡的位置（如第一段之后，以及文章中后部）合理插入 1-2 张高清图片。
+4. 穿插图片：根据上下文，在合适且均衡的位置（如第一段之后，以及文章中后部）合理插入 1-2 张高清图片。
    你必须只能从以下候选图片中挑选（使用标准的 Markdown 语法 \`![图片描述](URL)\` 插入）：
 ${imgGuide}
 5. 根据排版风格：[${style}] 对内容进行相应的微调。
@@ -517,7 +503,6 @@ ${text}
         resultMarkdown = resultMarkdown.replace(/^```markdown\n/i, '').replace(/\n```$/, '').replace(/^```\n/i, '');
 
         rawInput.value = resultMarkdown;
-        // 自动切回到“文章编辑”标签页
         document.querySelector('.left-tab-btn[data-left-tab="content"]').click();
         showToast('✨ AI 智能润色及配图已完成！');
       } catch (err) {
@@ -601,14 +586,145 @@ ${text}
           applyConfigToUI({ ...DEFAULT_CONFIG, ...THEME_PRESETS.gold });
         }
 
-        // 自动切回到“文章编辑”标签页
         document.querySelector('.left-tab-btn[data-left-tab="content"]').click();
         showToast('✨ 已完成本地规则优化与智能配图！');
       }, 800);
     }, 800);
   }
 
-  // 7. UI 事件绑定
+  // 🪐 8. GSAP 高级背景模板渲染器
+  let currentBgTween = null;
+
+  function initEnvironmentBackground(type) {
+    // 1. 清空当前背景容器
+    bgCanvasContainer.innerHTML = '';
+    // 2. 终止目前所有的 GSAP 动画
+    gsap.killTweensOf('.aura-blob, .neon-beam, .glass-shape');
+
+    if (currentBgTween) {
+      currentBgTween.kill();
+      currentBgTween = null;
+    }
+
+    // 移出网格 Spotlight 鼠标侦听
+    document.body.removeEventListener('mousemove', onGridSpotlightMove);
+
+    // 3. 根据类型进行高级背景搭建与 GSAP 动画注入
+    if (type === 'aura') {
+      // 极光弥散: 3 个 Mesh blur 渐变小球漂浮
+      const colors = ['#818cf8', '#ec4899', '#38bdf8'];
+      
+      colors.forEach((color, index) => {
+        const blob = document.createElement('div');
+        blob.className = 'aura-blob';
+        blob.style.backgroundColor = color;
+        blob.style.width = `${Math.random() * 200 + 400}px`;
+        blob.style.height = blob.style.width;
+        blob.style.left = `${Math.random() * 80}%`;
+        blob.style.top = `${Math.random() * 80}%`;
+        bgCanvasContainer.appendChild(blob);
+
+        // GSAP 随机轨迹漂移
+        gsap.to(blob, {
+          x: 'random(-150, 150)',
+          y: 'random(-150, 150)',
+          scale: 'random(0.8, 1.3)',
+          duration: Math.random() * 12 + 15,
+          repeat: -1,
+          yoyo: true,
+          ease: 'sine.inOut',
+          delay: index * 2
+        });
+      });
+
+    } else if (type === 'grid') {
+      // 光影网格: dot 网格底图 + 鼠标追踪射灯
+      const gridOverlay = document.createElement('div');
+      gridOverlay.className = 'grid-bg-overlay';
+      bgCanvasContainer.appendChild(gridOverlay);
+
+      const spotlight = document.createElement('div');
+      spotlight.className = 'grid-spotlight';
+      bgCanvasContainer.appendChild(spotlight);
+
+      // 绑定鼠标追踪
+      document.body.addEventListener('mousemove', onGridSpotlightMove);
+      document.body.addEventListener('mouseenter', () => gsap.to(spotlight, { opacity: 1, duration: 0.5 }));
+      document.body.addEventListener('mouseleave', () => gsap.to(spotlight, { opacity: 0, duration: 0.5 }));
+
+      // 初始渐入
+      gsap.to(spotlight, { opacity: 1, duration: 0.8 });
+
+    } else if (type === 'neon') {
+      // 赛博霓虹: 细斜线条滑动
+      for (let i = 0; i < 6; i++) {
+        const beam = document.createElement('div');
+        beam.className = 'neon-beam';
+        beam.style.height = `${Math.random() * 200 + 300}px`;
+        beam.style.left = `${Math.random() * 100}%`;
+        beam.style.top = '-400px';
+        bgCanvasContainer.appendChild(beam);
+
+        // 使用 GSAP 模拟斜向下极速滑行
+        gsap.to(beam, {
+          y: window.innerHeight + 500,
+          x: -200,
+          duration: Math.random() * 5 + 6,
+          repeat: -1,
+          ease: 'none',
+          delay: Math.random() * 5
+        });
+      }
+    } else if (type === 'glass') {
+      // 微光磨砂: 毛玻璃圆盘浮动
+      for (let i = 0; i < 4; i++) {
+        const shape = document.createElement('div');
+        shape.className = 'glass-shape';
+        shape.style.width = `${Math.random() * 150 + 150}px`;
+        shape.style.height = shape.style.width;
+        shape.style.left = `${Math.random() * 85}%`;
+        shape.style.top = `${Math.random() * 85}%`;
+        bgCanvasContainer.appendChild(shape);
+
+        // GSAP 三维旋转和漂浮
+        gsap.to(shape, {
+          x: 'random(-80, 80)',
+          y: 'random(-80, 80)',
+          rotation: 'random(-180, 180)',
+          duration: Math.random() * 15 + 20,
+          repeat: -1,
+          yoyo: true,
+          ease: 'sine.inOut'
+        });
+      }
+    }
+  }
+
+  // 鼠标追踪计算
+  function onGridSpotlightMove(e) {
+    const spotlight = document.querySelector('.grid-spotlight');
+    if (spotlight) {
+      gsap.to(spotlight, {
+        x: e.clientX,
+        y: e.clientY,
+        duration: 0.4,
+        ease: 'power2.out'
+      });
+    }
+  }
+
+  // 9. UI 事件绑定
+
+  // 切换高级背景环境
+  bgPresetButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      bgPresetButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const bgType = btn.dataset.bg;
+      localStorage.setItem('gzh_bg_type', bgType);
+      initEnvironmentBackground(bgType);
+    });
+  });
 
   // 左侧 Tab 切换
   leftTabButtons.forEach(btn => {
@@ -618,18 +734,6 @@ ${text}
 
       btn.classList.add('active');
       const tabId = `left-tab-${btn.dataset.leftTab}`;
-      document.getElementById(tabId).classList.add('active');
-    });
-  });
-
-  // 右侧 Tab 切换
-  tabButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      tabButtons.forEach(b => b.classList.remove('active'));
-      tabContents.forEach(c => c.classList.remove('active'));
-
-      btn.classList.add('active');
-      const tabId = `tab-${btn.dataset.tab}`;
       document.getElementById(tabId).classList.add('active');
     });
   });
@@ -663,20 +767,6 @@ ${text}
     applyConfigToUI(currentConfig);
   });
 
-  // 💻 复制 HTML 源码
-  copyBtn.addEventListener('click', () => {
-    const htmlCode = parseTextToWeChatHTML(rawInput.value);
-    
-    navigator.clipboard.writeText(htmlCode)
-      .then(() => {
-        showToast('复制成功！已复制 HTML 源码');
-      })
-      .catch(err => {
-        console.error('复制失败: ', err);
-        alert('复制失败，请手动全选复制。');
-      });
-  });
-
   // 📋 一键复制富文本
   copyRichBtn.addEventListener('click', () => {
     const htmlCode = parseTextToWeChatHTML(rawInput.value);
@@ -704,7 +794,7 @@ ${text}
           window.getSelection().removeAllRanges();
           showToast('📋 富文本复制成功！(兼容模式)');
         } catch (fallbackErr) {
-          alert('您的浏览器不支持直接复制富文本，请使用复制 HTML 源码页。');
+          alert('您的浏览器不支持富文本复制，请更换 Chrome / Safari 浏览器。');
         }
       });
   });
@@ -742,7 +832,7 @@ ${text}
   aiOptimizeBtn.addEventListener('click', runAIOptimization);
   importLocalBtn.addEventListener('click', importLocalOutputHTML);
 
-  // 📝 初始示例内容
+  // 📝 初始示例与环境加载
   const sampleArticle = `# 关于人工智能时代的思考
 ## AI 变革的浪潮
 在今天，我们正在经历一场前所未有的人工智能革命。从自然语言处理到图像自动生成，AI 已经深入到了各行各业，扮演着赋能者和加速器的角色。
@@ -763,7 +853,16 @@ ${text}
   rawInput.value = sampleArticle;
   applyConfigToUI(DEFAULT_CONFIG);
   
-  // 自动尝试静默载入已排版的 output.html
+  // 1. 初始化高级环境背景
+  const savedBgType = localStorage.getItem('gzh_bg_type') || 'aura';
+  const activeBgBtn = Array.from(bgPresetButtons).find(btn => btn.dataset.bg === savedBgType);
+  if (activeBgBtn) {
+    bgPresetButtons.forEach(b => b.classList.remove('active'));
+    activeBgBtn.classList.add('active');
+  }
+  initEnvironmentBackground(savedBgType);
+
+  // 2. 自动尝试静默载入已排版的 output.html
   fetch('output.html', { cache: 'no-store' })
     .then(res => {
       if (res.ok) {
