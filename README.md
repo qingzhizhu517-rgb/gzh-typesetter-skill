@@ -10,40 +10,39 @@
 * **深色模式友好**：避免使用纯黑/纯白作为文字或背景色，确保多端和双色模式下的最佳阅读体验。
 * **个性化偏好确认**：在排版前会自动提示确认字号、正文颜色、主题色、字间距、行间距、页面边距以及图片圆角等配置。
 
-## 安装指南
+## 安装与配置指南
 
-### 1. 全局安装（推荐）
+本排版工具采用通用的 Prompt 和工作流设计，支持目前主流的各种 AI 编程助手和通用大模型。
 
-如果您希望在任何工作区中都可以使用该 Skill，请将其安装在全局配置目录中：
+### 1. Google Antigravity (AGY)
 
-```bash
-mkdir -p ~/.gemini/config/skills/gzh
-# 将 SKILL.md 复制或写入到该目录中
-```
+* **项目级安装**：将 `SKILL.md` 写入到当前项目的 `.agents/skills/gzh/SKILL.md` 中。
+* **全局安装**：将 `SKILL.md` 写入到全局配置 `~/.gemini/config/skills/gzh/SKILL.md` 中。
+* **使用方法**：直接在对话框中输入 `/gzh` 或提及 `公众号排版` 即可自动激活。
 
-文件路径应为：`~/.gemini/config/skills/gzh/SKILL.md`
+### 2. Cursor / Windsurf / VS Code Copilot
 
-### 2. 项目级安装
+项目根目录下已配置了 `.cursorrules` 文件。当您在 Cursor、Windsurf 等 IDE 助手里使用 Composer 或 Chat 时，AI 会自动加载并遵守这些规则。
 
-如果您仅希望在当前工作区中使用，可将其安装在当前项目的配置目录中：
+* **使用方法**：直接在 Chat 面板中对 AI 说：“帮我排版公众号文章” 或 “/gzh”，AI 即可按照工作流开始交互。
 
-```bash
-mkdir -p .agents/skills/gzh
-# 将 SKILL.md 复制或写入到该目录中
-```
+### 3. Claude Code
 
-文件路径应为：`.agents/skills/gzh/SKILL.md`
+Claude Code 拥有强大的 Agent 能力。您可以通过以下几种方式使用：
 
-## 使用方法
+* **系统 Prompt 选项**：在启动 Claude Code 时，您可以使用 `claude -p "请参考项目中的 .agents/skills/gzh/SKILL.md 的工作流来处理我的排版请求"`。
+* **直接加载规则**：在 Claude Code 对话中直接说：“请读取项目中的 `SKILL.md` 的排版要求，帮我排版以下内容”。
 
-在与 Antigravity 的对话框中，直接输入以下内容之一即可激活：
+### 4. ChatGPT / Claude Web端 / 其它大模型 (如 Custom GPTs)
 
-* `/gzh`
-* `排版微信公众号文章`
-* `gzh`
+您可以直接将 [SKILL.md](.agents/skills/gzh/SKILL.md) 文件的全文作为 **Custom Instructions（自定义指令）** 或 **System Prompt（系统提示词）** 粘贴给任何大模型，或者在创建您的专属 **Custom GPT** 时，将此内容填入 "Instructions" 栏中，即可获得完全一致的一键排版智能体。
 
-### 交互流程
+---
 
-1. **发送内容**：当收到 AI 的提示时，直接发送您要排版的文章内容（支持 Markdown 或纯文本）。
-2. **确认配置**：确认或修改弹出的排版偏好（也可以直接回复“默认”使用预设值）。
-3. **复制代码**：AI 将直接输出排版完成的 HTML 代码，您可以点击一键复制并粘贴到微信公众号后台的“源码编辑”模式中使用。
+## 排版交互流程
+
+无论使用哪款工具，标准的交互流程均分为三步：
+
+1. **发送内容**：激活排版命令后，AI 会提示：“请发送您要排版的文章内容，支持直接粘贴文本。”
+2. **确认偏好**：AI 会以简洁列表方式列出正文字号、行距、圆角等参数，您可以直接回复“默认”或按需修改其中的某几项。
+3. **获取 HTML**：AI 将直接输出排版完成的 HTML 代码块。您只需一键复制，然后在微信公众号编辑器后台的【Ctrl + Alt + A】源码编辑模式中粘贴即可！
