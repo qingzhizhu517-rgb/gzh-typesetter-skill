@@ -693,14 +693,20 @@ input[type=range]::-webkit-slider-thumb:hover {
   background-color: var(--primary-light);
 }
 
-/* 按钮样式 */
+/* 按钮样式组 */
+.action-buttons-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .primary-button {
   background: linear-gradient(135deg, var(--primary), #3b82f6);
   color: white;
   border: none;
   padding: 10px 18px;
   border-radius: var(--radius-sm);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   display: inline-flex;
@@ -713,6 +719,33 @@ input[type=range]::-webkit-slider-thumb:hover {
 .primary-button:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(79, 70, 229, 0.35);
+}
+
+.rich-copy-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.2);
+}
+
+.rich-copy-btn:hover {
+  background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
+}
+
+.secondary-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.secondary-btn:hover {
+  background-color: var(--bg-app);
+  border-color: var(--text-muted);
 }
 
 .text-button {
@@ -753,8 +786,8 @@ input[type=range]::-webkit-slider-thumb:hover {
   border-radius: 46px;
   height: 100%;
   max-height: 820px;
-  aspect-ratio: 390 / 844; /* 严格维持 iPhone 17 面板比例 */
-  width: auto; /* 宽度由高度和比例决定 */
+  aspect-ratio: 390 / 844;
+  width: auto;
   box-shadow: var(--shadow-phone);
   display: flex;
   flex-direction: column;

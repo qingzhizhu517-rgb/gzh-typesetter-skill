@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const previewFrame = document.getElementById('preview-frame');
   const htmlOutputCode = document.getElementById('html-output-code');
   const copyBtn = document.getElementById('copy-btn');
+  const copyRichBtn = document.getElementById('copy-rich-btn');
   const themeToggle = document.getElementById('theme-toggle');
   const resetBtn = document.getElementById('reset-btn');
   const toast = document.getElementById('toast');
@@ -331,7 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 5. HTML 反向还原解析为 Markdown (用于加载本地 output.html)
+  // 5. HTML 反向还原解析为 Markdown
   function convertHTMLToMarkdown(htmlString) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlString, 'text/html');
@@ -353,11 +354,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (img) {
           markdown += `![${img.alt || '图片'}](${img.src})\n\n`;
         } else if (p) {
-          // 清除 inline element 的 html 样式还原文字
           let text = p.innerHTML;
-          // 还原加粗: <strong style="...">text</strong> -> **text**
           text = text.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
-          // 还原超链接: <a href="url" style="...">text</a> -> [text](url)
           text = text.replace(/<a\s+href="([^"]+)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
           
           const fontSize = p.style.fontSize || '';
@@ -408,19 +406,17 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error('未检测到本地已排版的 output.html 文件。请先在 AI 对话中运行 /gzh 排版生成文章。');
       }
       
-      const htmlText = await response.ok ? await response.text() : '';
+      const htmlText = await response.text();
       if (!htmlText.trim()) {
         throw new Error('本地 output.html 内容为空。');
       }
 
-      // 将 HTML 还原为 Markdown 内容
       const markdown = convertHTMLToMarkdown(htmlText);
       if (markdown) {
         rawInput.value = markdown;
         render();
         showToast('📥 成功从本地 output.html 恢复排版与图片！');
       } else {
-        // 如果无法正常反向解析，直接将 html 载入预览，并把 html 塞入源码标签页
         previewFrame.innerHTML = htmlText;
         htmlOutputCode.textContent = htmlText;
         rawInput.value = '/* 无法反向解析为 Markdown，已直接载入 HTML 渲染效果。请在右侧直接预览或复制代码。 */';
@@ -432,7 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 6. AI 一键优化与智能配图引擎 (核心添加)
+  // 6. AI 一键优化与智能配图引擎
   async function runAIOptimization() {
     const text = rawInput.value.trim();
     if (!text) {
@@ -449,7 +445,6 @@ document.addEventListener('DOMContentLoaded', () => {
     aiOptimizeBtn.disabled = true;
     aiOptimizeBtn.style.opacity = '0.7';
 
-    // 确定文章配图主题分类
     let themeCategory = 'design';
     const lowText = text.toLowerCase();
     if (lowText.includes('科技') || lowText.includes('ai') || lowText.includes('人工智能') || lowText.includes('电脑') || lowText.includes('算法')) {
@@ -645,16 +640,51 @@ ${text}
     });
   });
 
+  // 💻 复制 HTML 源码
   copyBtn.addEventListener('click', () => {
     const htmlCode = parseTextToWeChatHTML(rawInput.value);
     
     navigator.clipboard.writeText(htmlCode)
       .then(() => {
-        showToast('复制成功！请直接粘贴到公众号源码模式');
+        showToast('复制成功！已复制 HTML 源码');
       })
       .catch(err => {
         console.error('复制失败: ', err);
-        alert('复制失败，请在 HTML 源码页中手动全选复制。');
+        alert('复制失败，请手动全选复制。');
+      });
+  });
+
+  // 📋 一键复制富文本 (直贴微信公众号正文 - 核心添加)
+  copyRichBtn.addEventListener('click', () => {
+    const htmlCode = parseTextToWeChatHTML(rawInput.value);
+    
+    // 创建 MIME 类型为 text/html 的 Blob
+    const blobHTML = new Blob([htmlCode], { type: 'text/html' });
+    const blobText = new Blob([previewFrame.innerText], { type: 'text/plain' });
+    
+    const data = [new ClipboardItem({
+      'text/html': blobHTML,
+      'text/plain': blobText
+    })];
+    
+    navigator.clipboard.write(data)
+      .then(() => {
+        showToast('📋 富文本复制成功！可以直接粘贴到公众号编辑器');
+      })
+      .catch(err => {
+        console.error('富文本复制失败: ', err);
+        // 降级使用 Range 选择进行富文本复制
+        try {
+          const range = document.createRange();
+          range.selectNode(previewFrame);
+          window.getSelection().removeAllRanges();
+          window.getSelection().addRange(range);
+          document.execCommand('copy');
+          window.getSelection().removeAllRanges();
+          showToast('📋 富文本复制成功！(兼容模式)');
+        } catch (fallbackErr) {
+          alert('您的浏览器不支持直接复制富文本，请使用复制 HTML 源码页。');
+        }
       });
   });
 
@@ -687,7 +717,7 @@ ${text}
     }, 2500);
   }
 
-  // 绑定 AI 优化和导入按钮事件
+  // 绑定事件
   aiOptimizeBtn.addEventListener('click', runAIOptimization);
   importLocalBtn.addEventListener('click', importLocalOutputHTML);
 
@@ -696,7 +726,7 @@ ${text}
 ## AI 变革的浪潮
 在今天，我们正在经历一场前所未有的人工智能革命。从自然语言处理到图像自动生成，AI 已经深入到了各行各业，扮演着赋能者和加速器的角色。
 
-作为一名内容创作者，如何利用好这股浪潮？我们需要在规范的排版中注入思考，同时保持阅读体验的自然与美观。
+作为一名内容创作者，如何利用好这股浪潮？我们需要在规范的排版中注入思考，同时保持阅读体验 of 自然与美观。
 
 > "AI 不会淘汰人类，但使用 AI 的人会淘汰不使用的人。" 
 
@@ -710,11 +740,8 @@ ${text}
 最后，排版只是一种辅助手段，最核心的依然是内容本身的质量和您传递给读者的价值！`;
 
   rawInput.value = sampleArticle;
-  
-  // 运行渲染
   applyConfigToUI(DEFAULT_CONFIG);
   
-  // 自动尝试静默载入已排版的 output.html，若无则不阻断
   fetch('output.html', { cache: 'no-store' })
     .then(res => {
       if (res.ok) {
