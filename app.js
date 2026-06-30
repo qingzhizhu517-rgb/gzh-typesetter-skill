@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const tabButtons = document.querySelectorAll('.tab-btn');
   const tabContents = document.querySelectorAll('.tab-content');
 
-  // AI 优化元素引用
+  // AI 优化与导入按钮
   const toggleApiSettings = document.getElementById('toggle-api-settings');
   const apiSettingsPanel = document.getElementById('api-settings-panel');
   const apiEndpointInput = document.getElementById('api-endpoint');
@@ -49,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const aiStyleSelect = document.getElementById('ai-style');
   const imgKeywordsInput = document.getElementById('img-keywords');
   const aiOptimizeBtn = document.getElementById('ai-optimize-btn');
+  const importLocalBtn = document.getElementById('import-local-btn');
   const aiLoading = document.getElementById('ai-loading');
   const aiLoadingText = document.getElementById('ai-loading-text');
 
@@ -88,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // 高清配图图库（精心挑选的 Unsplash 优质无版权免扣图）
+  // 高清配图图库
   const IMAGE_DATABASE = {
     tech: [
       { id: '1526374965328', desc: '科技数字矩阵', url: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800' },
@@ -147,7 +148,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let inList = false;
     let isOrdered = false;
 
-    // 解析偏好缓存
     const pSize = `${currentConfig.fontSize}px`;
     const pColor = currentConfig.colorText;
     const lHeight = currentConfig.lineHeight;
@@ -160,9 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function formatInlineElements(str) {
       let clean = str;
-      // 解析粗体 **bold**
       clean = clean.replace(/\*\*(.*?)\*\*/g, `<strong style="color: ${accentColor}; font-weight: bold;">$1</strong>`);
-      // 解析超链接 [text](url)
       clean = clean.replace(/\[(.*?)\]\((.*?)\)/g, `<a href="$2" style="color: ${accentColor}; text-decoration: underline;">$1</a>`);
       return clean;
     }
@@ -333,7 +331,108 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 5. AI 一键优化与智能配图引擎 (核心添加)
+  // 5. HTML 反向还原解析为 Markdown (用于加载本地 output.html)
+  function convertHTMLToMarkdown(htmlString) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlString, 'text/html');
+    let markdown = '';
+    
+    const topElements = doc.body.children;
+    if (topElements.length === 0) return '';
+
+    for (let el of topElements) {
+      const tagName = el.tagName;
+
+      if (tagName === 'SECTION') {
+        const p = el.querySelector('p');
+        const img = el.querySelector('img');
+        const borderLeft = el.style.borderLeft || '';
+        const borderTop = el.style.borderTop || '';
+        const textAlign = p ? (p.style.textAlign || el.style.textAlign || '') : '';
+        
+        if (img) {
+          markdown += `![${img.alt || '图片'}](${img.src})\n\n`;
+        } else if (p) {
+          // 清除 inline element 的 html 样式还原文字
+          let text = p.innerHTML;
+          // 还原加粗: <strong style="...">text</strong> -> **text**
+          text = text.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
+          // 还原超链接: <a href="url" style="...">text</a> -> [text](url)
+          text = text.replace(/<a\s+href="([^"]+)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
+          
+          const fontSize = p.style.fontSize || '';
+          
+          if (fontSize.includes('22px') || textAlign === 'center') {
+            markdown += `# ${text}\n\n`;
+          } else if (fontSize.includes('18px') || borderLeft.includes('4px') || el.style.borderLeft) {
+            markdown += `## ${text}\n\n`;
+          } else if (fontSize.includes('16px')) {
+            markdown += `### ${text}\n\n`;
+          } else if (borderLeft.includes('3px') || el.style.backgroundColor) {
+            markdown += `> ${text}\n\n`;
+          } else {
+            markdown += `${text}\n\n`;
+          }
+        } else if (borderTop || el.style.borderTop) {
+          markdown += `---\n\n`;
+        }
+      } else if (tagName === 'UL') {
+        el.querySelectorAll('li').forEach(li => {
+          let liText = li.innerHTML;
+          liText = liText.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
+          liText = liText.replace(/<a\s+href="([^"]+)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
+          markdown += `- ${liText}\n`;
+        });
+        markdown += `\n`;
+      } else if (tagName === 'OL') {
+        let count = 1;
+        el.querySelectorAll('li').forEach(li => {
+          let liText = li.innerHTML;
+          liText = liText.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
+          liText = liText.replace(/<a\s+href="([^"]+)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
+          markdown += `${count}. ${liText}\n`;
+          count++;
+        });
+        markdown += `\n`;
+      }
+    }
+    return markdown.trim();
+  }
+
+  // 载入本地生成的 output.html
+  async function importLocalOutputHTML() {
+    try {
+      showToast('正在寻找本地 output.html...');
+      const response = await fetch('output.html', { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error('未检测到本地已排版的 output.html 文件。请先在 AI 对话中运行 /gzh 排版生成文章。');
+      }
+      
+      const htmlText = await response.ok ? await response.text() : '';
+      if (!htmlText.trim()) {
+        throw new Error('本地 output.html 内容为空。');
+      }
+
+      // 将 HTML 还原为 Markdown 内容
+      const markdown = convertHTMLToMarkdown(htmlText);
+      if (markdown) {
+        rawInput.value = markdown;
+        render();
+        showToast('📥 成功从本地 output.html 恢复排版与图片！');
+      } else {
+        // 如果无法正常反向解析，直接将 html 载入预览，并把 html 塞入源码标签页
+        previewFrame.innerHTML = htmlText;
+        htmlOutputCode.textContent = htmlText;
+        rawInput.value = '/* 无法反向解析为 Markdown，已直接载入 HTML 渲染效果。请在右侧直接预览或复制代码。 */';
+        showToast('📥 已成功载入 HTML 源码预览！');
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    }
+  }
+
+  // 6. AI 一键优化与智能配图引擎 (核心添加)
   async function runAIOptimization() {
     const text = rawInput.value.trim();
     if (!text) {
@@ -345,15 +444,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const model = apiModelInput.value.trim();
     const apiKey = apiKeyInput.value.trim();
     const style = aiStyleSelect.value;
-    const customKeywords = imgKeywordsInput.value.trim();
 
-    // 显示 Loading 状态
     aiLoading.classList.remove('hidden');
     aiOptimizeBtn.disabled = true;
     aiOptimizeBtn.style.opacity = '0.7';
 
     // 确定文章配图主题分类
-    let themeCategory = 'design'; // 默认
+    let themeCategory = 'design';
     const lowText = text.toLowerCase();
     if (lowText.includes('科技') || lowText.includes('ai') || lowText.includes('人工智能') || lowText.includes('电脑') || lowText.includes('算法')) {
       themeCategory = 'tech';
@@ -365,11 +462,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const pickedImages = IMAGE_DATABASE[themeCategory];
 
-    // 情况一：使用真实大模型 API 接口
     if (apiKey) {
       aiLoadingText.textContent = `正在连接 AI 模型 ${model} 进行润色...`;
 
-      // 配图指引提示词
       const imgGuide = pickedImages.map(img => `- ${img.desc}: ![${img.desc}](${img.url})`).join('\n');
       
       const prompt = `您是一个顶尖的微信公众号排版与润色助理。请对以下文章进行重新润色与排版。
@@ -418,7 +513,6 @@ ${text}
         const data = await response.json();
         let resultMarkdown = data.choices[0].message.content.trim();
         
-        // 过滤掉大模型可能附带输出的 ```markdown ``` 标签
         resultMarkdown = resultMarkdown.replace(/^```markdown\n/i, '').replace(/\n```$/, '').replace(/^```\n/i, '');
 
         rawInput.value = resultMarkdown;
@@ -429,17 +523,14 @@ ${text}
         runLocalOptimization(text, style, pickedImages);
       }
     } else {
-      // 情况二：使用本地排版引擎 (无 API Key)
       runLocalOptimization(text, style, pickedImages);
     }
 
-    // 收尾：隐藏 Loading 状态
     aiLoading.classList.add('hidden');
     aiOptimizeBtn.disabled = false;
     aiOptimizeBtn.style.opacity = '1';
   }
 
-  // 本地轻量化优化引擎
   function runLocalOptimization(text, style, pickedImages) {
     aiLoadingText.textContent = "分析文章主体结构...";
     
@@ -449,12 +540,10 @@ ${text}
       setTimeout(() => {
         aiLoadingText.textContent = "美化字间距与标题图标...";
         
-        // 执行规则润色
         const lines = text.split('\n');
         let newLines = [];
         let headingCount = 0;
         
-        // 预设 Emoji 库
         const titleEmojis = ['💡', '🚀', '🔥', '🎨', '🌟', '💎', '📌', '🎯'];
 
         for (let i = 0; i < lines.length; i++) {
@@ -464,12 +553,10 @@ ${text}
             continue;
           }
 
-          // 给大标题加标志
           if (line.startsWith('# ')) {
             const headingText = line.substring(2);
             newLines.push(`# 🌟 ${headingText} 🌟`);
             
-            // 在大标题下方插入第一张图
             if (pickedImages.length > 0) {
               newLines.push('');
               newLines.push(`![${pickedImages[0].desc}](${pickedImages[0].url})`);
@@ -477,7 +564,6 @@ ${text}
             continue;
           }
 
-          // 给二级标题加 emoji
           if (line.startsWith('## ')) {
             const headingText = line.substring(3);
             const emoji = titleEmojis[headingCount % titleEmojis.length];
@@ -486,7 +572,6 @@ ${text}
             continue;
           }
 
-          // 给重点词语进行本地模拟高亮 (比如加粗"排版"、"阅读体验"、"价值"等词)
           const keywords = ['排版', '阅读体验', '微信公众号', '人工智能', '设计', '核心', '价值', '内容', '沉浸式'];
           keywords.forEach(word => {
             const regex = new RegExp(`(?<!\\*\\*)${word}(?!\\*\\*)`, 'g');
@@ -495,7 +580,6 @@ ${text}
 
           newLines.push(line);
 
-          // 在文章中间位置（约 60% 处）插入第二张配图
           if (i === Math.floor(lines.length * 0.6) && pickedImages.length > 1) {
             newLines.push('');
             newLines.push(`![${pickedImages[1].desc}](${pickedImages[1].url})`);
@@ -504,7 +588,6 @@ ${text}
 
         rawInput.value = newLines.join('\n');
         
-        // 根据风格应用预设主题颜色
         if (style === 'tech') {
           applyConfigToUI({ ...DEFAULT_CONFIG, ...THEME_PRESETS.default });
         } else if (style === 'warm') {
@@ -520,9 +603,8 @@ ${text}
     }, 800);
   }
 
-  // 6. UI 事件绑定与处理
+  // 7. UI 事件绑定
 
-  // 滑动条事件
   [fontSizeSlider, lineHeightSlider, letterSpacingSlider, marginSlider, borderRadiusSlider, indentCheckbox].forEach(el => {
     el.addEventListener('input', updateConfigFromUI);
     el.addEventListener('change', updateConfigFromUI);
@@ -532,10 +614,8 @@ ${text}
     el.addEventListener('input', updateConfigFromUI);
   });
 
-  // 输入变化实时更新
   rawInput.addEventListener('input', render);
 
-  // 快捷主题切换
   presetButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       const presetName = btn.dataset.theme;
@@ -549,13 +629,11 @@ ${text}
     });
   });
 
-  // 重置按钮
   resetBtn.addEventListener('click', () => {
     currentConfig = { ...DEFAULT_CONFIG };
     applyConfigToUI(currentConfig);
   });
 
-  // Tab 面板切换
   tabButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       tabButtons.forEach(b => b.classList.remove('active'));
@@ -567,7 +645,6 @@ ${text}
     });
   });
 
-  // 一键复制代码
   copyBtn.addEventListener('click', () => {
     const htmlCode = parseTextToWeChatHTML(rawInput.value);
     
@@ -581,7 +658,7 @@ ${text}
       });
   });
 
-  // 🌗 暗黑模式切换
+  // 🌗 暗黑模式
   const savedTheme = localStorage.getItem('theme') || 'light';
   document.documentElement.setAttribute('data-theme', savedTheme);
   updateThemeIcon(savedTheme);
@@ -602,7 +679,6 @@ ${text}
     }
   }
 
-  // Toast 弹框逻辑
   function showToast(message) {
     toast.textContent = message;
     toast.classList.add('show');
@@ -611,13 +687,14 @@ ${text}
     }, 2500);
   }
 
-  // AI 优化事件绑定
+  // 绑定 AI 优化和导入按钮事件
   aiOptimizeBtn.addEventListener('click', runAIOptimization);
+  importLocalBtn.addEventListener('click', importLocalOutputHTML);
 
   // 📝 初始示例内容
   const sampleArticle = `# 关于人工智能时代的思考
 ## AI 变革的浪潮
-在今天，我们正在经历一场前所未个人工智能革命。从自然语言处理到图像自动生成，AI 已经深入到了各行各业，扮演着赋能者和加速器的角色。
+在今天，我们正在经历一场前所未有的人工智能革命。从自然语言处理到图像自动生成，AI 已经深入到了各行各业，扮演着赋能者和加速器的角色。
 
 作为一名内容创作者，如何利用好这股浪潮？我们需要在规范的排版中注入思考，同时保持阅读体验的自然与美观。
 
@@ -636,4 +713,13 @@ ${text}
   
   // 运行渲染
   applyConfigToUI(DEFAULT_CONFIG);
+  
+  // 自动尝试静默载入已排版的 output.html，若无则不阻断
+  fetch('output.html', { cache: 'no-store' })
+    .then(res => {
+      if (res.ok) {
+        importLocalOutputHTML();
+      }
+    })
+    .catch(() => {});
 });
