@@ -4,16 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>微信公众号一键排版 - 可视化编辑器</title>
-  <meta name="description" content="微信公众号一键排版工具，提供实时可视化调节与微信渲染模拟，支持一键复制富文本直接粘贴。">
+  <meta name="description" content="微信公众号HTML一键排版工具，提供实时可视化调节与微信渲染模拟，支持一键复制富文本直接粘贴。">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <!-- 🪐 引入 GSAP 动画库 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 </head>
 <body>
-  <!-- 🌌 动态高级背景容器 -->
+  <!-- 🌌 动态高级环境背景容器 -->
   <div id="bg-canvas-container" class="bg-canvas-container"></div>
 
   <div class="app-container">
@@ -24,9 +23,9 @@
         <span class="logo-text">GZH <span class="logo-badge">Typesetter</span></span>
       </div>
       
-      <!-- 🎨 顶部高级背景模板切换器 -->
+      <!-- 环境背景切换器 -->
       <div class="bg-selector-wrapper">
-        <span class="bg-selector-label">环境背景：</span>
+        <span class="bg-selector-label">工作区背景：</span>
         <div class="bg-preset-grid">
           <button class="bg-preset-btn active" data-bg="aura">极光弥散</button>
           <button class="bg-preset-btn" data-bg="grid">光影网格</button>
@@ -138,9 +137,21 @@
 
             <!-- 🎨 标签页 3：微调参数 -->
             <div class="left-tab-content" id="left-tab-style">
+              <!-- 新增：文章 HTML 背景/外框模板选择器 -->
+              <div class="style-section-group">
+                <label class="group-title">文章背景/外框模板 (公众号最终复制效果)</label>
+                <div class="layout-preset-grid">
+                  <button class="layout-preset-btn active" data-layout="none">无外框</button>
+                  <button class="layout-preset-btn" data-layout="single-card">单大卡片</button>
+                  <button class="layout-preset-btn" data-layout="multi-card">分段卡片流</button>
+                  <button class="layout-preset-btn" data-layout="paper">古风信纸</button>
+                  <button class="layout-preset-btn" data-layout="outline">品牌线框</button>
+                </div>
+              </div>
+
               <!-- 快捷颜色主题 -->
               <div class="style-section-group">
-                <label class="group-title">主题风格模板</label>
+                <label class="group-title">配色模板</label>
                 <div class="theme-preset-grid">
                   <button class="theme-preset-btn active" data-theme="default">
                     <span class="color-dot text-default"></span> 科技蓝
@@ -159,7 +170,7 @@
 
               <!-- 排版滑块参数 -->
               <div class="style-section-group">
-                <label class="group-title">版面尺寸微调</label>
+                <label class="group-title">尺寸大小微调</label>
                 <div class="control-grid">
                   <div class="control-item">
                     <div class="slider-header">
@@ -210,7 +221,7 @@
 
               <!-- 取色器 -->
               <div class="style-section-group" style="margin-bottom: 0;">
-                <label class="group-title">精准配色方案</label>
+                <label class="group-title">精准配色调整</label>
                 <div class="color-picker-grid">
                   <div class="color-picker-item">
                     <label for="color-title">标题颜色</label>
@@ -263,7 +274,7 @@
         <div class="tab-content active" id="tab-preview">
           <!-- 📱 iPhone 17 高阶概念设计机型 -->
           <div class="phone-wrapper iphone17">
-            <!-- 仿真物理按键 (音量和电源) -->
+            <!-- 仿真物理按键 -->
             <div class="phone-physical-button volume-up"></div>
             <div class="phone-physical-button volume-down"></div>
             <div class="phone-physical-button power-btn"></div>

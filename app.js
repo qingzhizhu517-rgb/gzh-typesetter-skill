@@ -34,6 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // 预设主题按钮
   const presetButtons = document.querySelectorAll('.theme-preset-btn');
   
+  // 预设外框/背景模板按钮 (公众号最终排版背景)
+  const layoutPresetButtons = document.querySelectorAll('.layout-preset-btn');
+
   // 左侧 Tab 切换按钮
   const leftTabButtons = document.querySelectorAll('.left-tab-btn');
   const leftTabContents = document.querySelectorAll('.left-tab-content');
@@ -66,7 +69,8 @@ document.addEventListener('DOMContentLoaded', () => {
     indent: false,
     colorTitle: '#2c3e50',
     colorText: '#3f3f3f',
-    colorAccent: '#1e88e5'
+    colorAccent: '#1e88e5',
+    layoutTemplate: 'none' // 默认无背景框
   };
 
   const THEME_PRESETS = {
@@ -135,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // 2. 简易 Markdown / 纯文本解析引擎
+  // 2. 核心：解析并封装带有高级公众号背景模板的 HTML
   function parseTextToWeChatHTML(text) {
     if (!text.trim()) {
       return `<section style="padding: 0 16px; text-align: center; color: var(--text-muted); padding-top: 40px;">
@@ -144,7 +148,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const lines = text.split('\n');
-    let html = '';
     let inList = false;
     let isOrdered = false;
 
@@ -165,92 +168,174 @@ document.addEventListener('DOMContentLoaded', () => {
       return clean;
     }
 
-    for (let i = 0; i < lines.length; i++) {
-      let line = lines[i].trim();
-
-      if (!line) {
-        if (inList) {
-          html += isOrdered ? '</ol>' : '</ul>';
-          inList = false;
-        }
-        continue;
-      }
-
+    // 辅助解析行元素
+    function parseSingleLine(line) {
       if (line.startsWith('# ')) {
         const titleText = formatInlineElements(line.substring(2));
-        html += `<section style="margin: 0 0 24px 0; padding: 0 ${paddingX}; text-align: center;">
+        return `<section style="margin: 0 0 24px 0; padding: 0 ${paddingX}; text-align: center;">
                   <p style="font-size: 22px; font-weight: bold; color: ${titleColor}; line-height: 1.4; letter-spacing: 1px; margin: 0;">${titleText}</p>
                 </section>`;
-        continue;
       }
 
       if (line.startsWith('## ')) {
         const subTitleText = formatInlineElements(line.substring(3));
-        html += `<section style="margin: 32px 0 16px 0; padding: 0 ${paddingX}; border-left: 4px solid ${accentColor}; padding-left: 12px;">
+        return `<section style="margin: 32px 0 16px 0; padding: 0 ${paddingX}; border-left: 4px solid ${accentColor}; padding-left: 12px;">
                   <p style="font-size: 18px; font-weight: bold; color: ${titleColor}; line-height: 1.5; margin: 0;">${subTitleText}</p>
                 </section>`;
-        continue;
       }
 
       if (line.startsWith('### ')) {
         const smallTitleText = formatInlineElements(line.substring(4));
-        html += `<section style="margin: 24px 0 12px 0; padding: 0 ${paddingX};">
+        return `<section style="margin: 24px 0 12px 0; padding: 0 ${paddingX};">
                   <p style="font-size: 16px; font-weight: bold; color: ${accentColor}; line-height: 1.5; margin: 0;">${smallTitleText}</p>
                 </section>`;
-        continue;
       }
 
       if (line.startsWith('> ')) {
         const quoteContent = formatInlineElements(line.substring(2));
-        html += `<section style="margin: 16px ${paddingX}; padding: 14px 18px; background-color: #f7f9fc; border-left: 3px solid ${accentColor}; border-radius: 4px;">
+        return `<section style="margin: 16px ${paddingX}; padding: 14px 18px; background-color: #f7f9fc; border-left: 3px solid ${accentColor}; border-radius: 4px;">
                   <p style="font-size: 14px; color: #555555; line-height: 1.6; letter-spacing: 0.5px; margin: 0;">${quoteContent}</p>
                 </section>`;
-        continue;
       }
 
       const imgMatch = line.match(/^!\[(.*?)\]\((.*?)\)$/);
       if (imgMatch) {
         const altText = imgMatch[1];
         const imgUrl = imgMatch[2];
-        html += `<section style="margin: 24px ${paddingX}; text-align: center;">
+        return `<section style="margin: 24px ${paddingX}; text-align: center;">
                   <img src="${imgUrl}" alt="${altText}" style="max-width: 100%; border-radius: ${radius}; box-shadow: 0 4px 12px rgba(0,0,0,0.08); vertical-align: middle;">
                 </section>`;
-        continue;
       }
 
       if (line === '---' || line === '***') {
-        html += `<section style="margin: 32px ${paddingX}; border-top: 1px dashed ${accentColor}; opacity: 0.4;"></section>`;
-        continue;
-      }
-
-      const isUnorderedItem = line.startsWith('- ') || line.startsWith('* ');
-      const isOrderedItem = /^\d+\.\s/.test(line);
-
-      if (isUnorderedItem || isOrderedItem) {
-        if (!inList) {
-          inList = true;
-          isOrdered = isOrderedItem;
-          html += isOrdered 
-            ? `<ol style="margin: 16px ${paddingX}; padding-left: 20px; color: ${pColor}; font-size: ${pSize}; line-height: ${lHeight};">` 
-            : `<ul style="margin: 16px ${paddingX}; padding-left: 20px; color: ${pColor}; font-size: ${pSize}; line-height: ${lHeight};">`;
-        }
-
-        const itemContent = formatInlineElements(isOrderedItem ? line.replace(/^\d+\.\s/, '') : line.substring(2));
-        html += `<li style="margin-bottom: 8px; letter-spacing: ${lSpacing};">${itemContent}</li>`;
-        continue;
+        return `<section style="margin: 32px ${paddingX}; border-top: 1px dashed ${accentColor}; opacity: 0.4;"></section>`;
       }
 
       const paragraphText = formatInlineElements(line);
-      html += `<section style="margin: 0 0 16px 0; padding: 0 ${paddingX};">
+      return `<section style="margin: 0 0 16px 0; padding: 0 ${paddingX};">
                 <p style="font-size: ${pSize}; color: ${pColor}; line-height: ${lHeight}; letter-spacing: ${lSpacing}; text-align: justify; ${indent} margin: 0;">${paragraphText}</p>
               </section>`;
     }
 
-    if (inList) {
-      html += isOrdered ? '</ol>' : '</ul>';
+    let finalHTML = '';
+
+    // 🏆 A. 针对分段卡片流模式 (multi-card)
+    if (currentConfig.layoutTemplate === 'multi-card') {
+      const cards = [];
+      let currentCardHTML = '';
+
+      for (let i = 0; i < lines.length; i++) {
+        let line = lines[i].trim();
+        if (!line) {
+          if (inList) {
+            currentCardHTML += isOrdered ? '</ol>' : '</ul>';
+            inList = false;
+          }
+          continue;
+        }
+
+        // 遇到大标题或二级标题，关闭上一张卡片，开启新卡片
+        if (line.startsWith('# ') || line.startsWith('## ')) {
+          if (currentCardHTML.trim()) {
+            cards.push(currentCardHTML);
+            currentCardHTML = '';
+          }
+        }
+
+        // 处理列表结构
+        const isUnorderedItem = line.startsWith('- ') || line.startsWith('* ');
+        const isOrderedItem = /^\d+\.\s/.test(line);
+
+        if (isUnorderedItem || isOrderedItem) {
+          if (!inList) {
+            inList = true;
+            isOrdered = isOrderedItem;
+            currentCardHTML += isOrdered 
+              ? `<ol style="margin: 16px ${paddingX}; padding-left: 20px; color: ${pColor}; font-size: ${pSize}; line-height: ${lHeight};">` 
+              : `<ul style="margin: 16px ${paddingX}; padding-left: 20px; color: ${pColor}; font-size: ${pSize}; line-height: ${lHeight};">`;
+          }
+          const itemContent = formatInlineElements(isOrderedItem ? line.replace(/^\d+\.\s/, '') : line.substring(2));
+          currentCardHTML += `<li style="margin-bottom: 8px; letter-spacing: ${lSpacing};">${itemContent}</li>`;
+        } else {
+          if (inList) {
+            currentCardHTML += isOrdered ? '</ol>' : '</ul>';
+            inList = false;
+          }
+          currentCardHTML += parseSingleLine(line);
+        }
+      }
+
+      if (currentCardHTML.trim()) {
+        cards.push(currentCardHTML);
+      }
+
+      // 将每一组卡片单独包装
+      finalHTML = cards.map(card => {
+        return `<section style="margin: 0 12px 20px 12px; padding: 22px 18px; background-color: #ffffff; border-radius: 12px; border: 1.5px solid #ebebeb; box-shadow: 0 6px 18px rgba(0,0,0,0.015); display: block; box-sizing: border-box;">
+                  ${card}
+                </section>`;
+      }).join('\n');
+
+    } else {
+      // 🏆 B. 其他布局模板 (单卡片、宣纸、线框等)
+      let innerHTML = '';
+      for (let i = 0; i < lines.length; i++) {
+        let line = lines[i].trim();
+        if (!line) {
+          if (inList) {
+            innerHTML += isOrdered ? '</ol>' : '</ul>';
+            inList = false;
+          }
+          continue;
+        }
+
+        const isUnorderedItem = line.startsWith('- ') || line.startsWith('* ');
+        const isOrderedItem = /^\d+\.\s/.test(line);
+
+        if (isUnorderedItem || isOrderedItem) {
+          if (!inList) {
+            inList = true;
+            isOrdered = isOrderedItem;
+            innerHTML += isOrdered 
+              ? `<ol style="margin: 16px ${paddingX}; padding-left: 20px; color: ${pColor}; font-size: ${pSize}; line-height: ${lHeight};">` 
+              : `<ul style="margin: 16px ${paddingX}; padding-left: 20px; color: ${pColor}; font-size: ${pSize}; line-height: ${lHeight};">`;
+          }
+          const itemContent = formatInlineElements(isOrderedItem ? line.replace(/^\d+\.\s/, '') : line.substring(2));
+          innerHTML += `<li style="margin-bottom: 8px; letter-spacing: ${lSpacing};">${itemContent}</li>`;
+        } else {
+          if (inList) {
+            innerHTML += isOrdered ? '</ol>' : '</ul>';
+            inList = false;
+          }
+          innerHTML += parseSingleLine(line);
+        }
+      }
+
+      if (inList) {
+        innerHTML += isOrdered ? '</ol>' : '</ul>';
+      }
+
+      // 根据外框参数进行包裹
+      if (currentConfig.layoutTemplate === 'single-card') {
+        finalHTML = `<section style="margin: 16px 12px; padding: 26px 18px; background-color: #ffffff; border-radius: 14px; border: 1.5px solid #eaeaea; box-shadow: 0 10px 30px rgba(0,0,0,0.02); display: block; box-sizing: border-box;">
+                      ${innerHTML}
+                    </section>`;
+      } else if (currentConfig.layoutTemplate === 'paper') {
+        finalHTML = `<section style="margin: 16px 12px; padding: 26px 18px; background-color: #fbf8f2; border-radius: 8px; border: 2.5px solid #ded6c0; box-shadow: 0 6px 20px rgba(0,0,0,0.015); display: block; box-sizing: border-box;">
+                      <section style="border: 1px dashed #cfc5aa; padding: 18px 12px; border-radius: 4px; display: block; box-sizing: border-box; background-color: #fcfbf9;">
+                        ${innerHTML}
+                      </section>
+                    </section>`;
+      } else if (currentConfig.layoutTemplate === 'outline') {
+        finalHTML = `<section style="margin: 16px 12px; padding: 26px 18px; background-color: #ffffff; border-radius: 8px; border: 3px solid ${accentColor}; display: block; box-sizing: border-box;">
+                      ${innerHTML}
+                    </section>`;
+      } else {
+        finalHTML = innerHTML; // none: 默认无框
+      }
     }
 
-    return html;
+    return finalHTML;
   }
 
   // 3. 渲染预览
@@ -258,7 +343,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const rawText = rawInput.value;
     const finalHTML = parseTextToWeChatHTML(rawText);
     previewFrame.innerHTML = finalHTML;
-    htmlOutputCode.textContent = finalHTML;
   }
 
   // 4. UI 状态同步
@@ -300,6 +384,15 @@ document.addEventListener('DOMContentLoaded', () => {
     colorText.value = config.colorText;
     colorAccent.value = config.colorAccent;
 
+    // 同步选中的外框模板
+    layoutPresetButtons.forEach(btn => {
+      if (btn.dataset.layout === config.layoutTemplate) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
     updateConfigFromUI();
   }
 
@@ -323,68 +416,92 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 5. HTML 反向还原解析为 Markdown
+  // 5. 递归式高级 HTML 还原为 Markdown，不受外框嵌套层级影响
   function convertHTMLToMarkdown(htmlString) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlString, 'text/html');
     let markdown = '';
     
-    const topElements = doc.body.children;
-    if (topElements.length === 0) return '';
-
-    for (let el of topElements) {
-      const tagName = el.tagName;
-
-      if (tagName === 'SECTION') {
-        const p = el.querySelector('p');
-        const img = el.querySelector('img');
-        const borderLeft = el.style.borderLeft || '';
-        const borderTop = el.style.borderTop || '';
-        const textAlign = p ? (p.style.textAlign || el.style.textAlign || '') : '';
+    function traverse(node) {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const tagName = node.tagName;
         
-        if (img) {
-          markdown += `![${img.alt || '图片'}](${img.src})\n\n`;
-        } else if (p) {
-          let text = p.innerHTML;
+        // 1. 段落
+        if (tagName === 'P') {
+          let text = node.innerHTML;
           text = text.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
           text = text.replace(/<a\s+href="([^"]+)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
           
-          const fontSize = p.style.fontSize || '';
+          const fontSize = node.style.fontSize || '';
+          const textAlign = node.style.textAlign || '';
           
           if (fontSize.includes('22px') || textAlign === 'center') {
             markdown += `# ${text}\n\n`;
-          } else if (fontSize.includes('18px') || borderLeft.includes('4px') || el.style.borderLeft) {
+          } else if (fontSize.includes('18px') || node.style.borderLeft || (node.parentElement && node.parentElement.style.borderLeft)) {
             markdown += `## ${text}\n\n`;
           } else if (fontSize.includes('16px')) {
             markdown += `### ${text}\n\n`;
-          } else if (borderLeft.includes('3px') || el.style.backgroundColor) {
-            markdown += `> ${text}\n\n`;
           } else {
             markdown += `${text}\n\n`;
           }
-        } else if (borderTop || el.style.borderTop) {
-          markdown += `---\n\n`;
+          return; // 结束此 P 分支的更深遍历
         }
-      } else if (tagName === 'UL') {
-        el.querySelectorAll('li').forEach(li => {
-          let liText = li.innerHTML;
-          liText = liText.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
-          liText = liText.replace(/<a\s+href="([^"]+)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
-          markdown += `- ${liText}\n`;
-        });
-        markdown += `\n`;
-      } else if (tagName === 'OL') {
-        let count = 1;
-        el.querySelectorAll('li').forEach(li => {
-          let liText = li.innerHTML;
-          liText = liText.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
-          liText = liText.replace(/<a\s+href="([^"]+)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
-          markdown += `${count}. ${liText}\n`;
-          count++;
-        });
-        markdown += `\n`;
+        
+        // 2. 图片
+        if (tagName === 'IMG') {
+          markdown += `![${node.alt || '图片'}](${node.src})\n\n`;
+          return;
+        }
+        
+        // 3. 分割线
+        if (tagName === 'SECTION' && (node.style.borderTop || node.style.borderTopStyle)) {
+          markdown += `---\n\n`;
+          return;
+        }
+
+        // 4. 引用块
+        if (tagName === 'SECTION' && node.style.borderLeft && node.style.backgroundColor && !node.querySelector('p')) {
+          let text = node.innerHTML;
+          text = text.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
+          text = text.replace(/<a\s+href="([^"]+)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
+          markdown += `> ${text}\n\n`;
+          return;
+        }
+
+        // 5. 无序列表
+        if (tagName === 'UL') {
+          node.querySelectorAll('li').forEach(li => {
+            let liText = li.innerHTML;
+            liText = liText.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
+            liText = liText.replace(/<a\s+href="([^"]+)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
+            markdown += `- ${liText}\n`;
+          });
+          markdown += `\n`;
+          return;
+        }
+        
+        // 6. 有序列表
+        if (tagName === 'OL') {
+          let count = 1;
+          node.querySelectorAll('li').forEach(li => {
+            let liText = li.innerHTML;
+            liText = liText.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
+            liText = liText.replace(/<a\s+href="([^"]+)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
+            markdown += `${count}. ${liText}\n`;
+            count++;
+          });
+          markdown += `\n`;
+          return;
+        }
+      }
+      
+      // 深度优先递归遍历
+      for (let child of node.childNodes) {
+        traverse(child);
       }
     }
+    
+    traverse(doc.body);
     return markdown.trim();
   }
 
@@ -410,7 +527,6 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('📥 成功从本地 output.html 恢复排版与图片！');
       } else {
         previewFrame.innerHTML = htmlText;
-        htmlOutputCode.textContent = htmlText;
         rawInput.value = '/* 已载入 HTML 渲染效果，请在右侧预览。 */';
         showToast('📥 已成功载入 HTML 源码预览！');
       }
@@ -592,13 +708,11 @@ ${text}
     }, 800);
   }
 
-  // 🪐 8. GSAP 高级背景模板渲染器
+  // 🪐 8. GSAP 高级环境背景渲染器 (工作区背景)
   let currentBgTween = null;
 
   function initEnvironmentBackground(type) {
-    // 1. 清空当前背景容器
     bgCanvasContainer.innerHTML = '';
-    // 2. 终止目前所有的 GSAP 动画
     gsap.killTweensOf('.aura-blob, .neon-beam, .glass-shape');
 
     if (currentBgTween) {
@@ -606,14 +720,10 @@ ${text}
       currentBgTween = null;
     }
 
-    // 移出网格 Spotlight 鼠标侦听
     document.body.removeEventListener('mousemove', onGridSpotlightMove);
 
-    // 3. 根据类型进行高级背景搭建与 GSAP 动画注入
     if (type === 'aura') {
-      // 极光弥散: 3 个 Mesh blur 渐变小球漂浮
       const colors = ['#818cf8', '#ec4899', '#38bdf8'];
-      
       colors.forEach((color, index) => {
         const blob = document.createElement('div');
         blob.className = 'aura-blob';
@@ -624,7 +734,6 @@ ${text}
         blob.style.top = `${Math.random() * 80}%`;
         bgCanvasContainer.appendChild(blob);
 
-        // GSAP 随机轨迹漂移
         gsap.to(blob, {
           x: 'random(-150, 150)',
           y: 'random(-150, 150)',
@@ -638,7 +747,6 @@ ${text}
       });
 
     } else if (type === 'grid') {
-      // 光影网格: dot 网格底图 + 鼠标追踪射灯
       const gridOverlay = document.createElement('div');
       gridOverlay.className = 'grid-bg-overlay';
       bgCanvasContainer.appendChild(gridOverlay);
@@ -647,16 +755,13 @@ ${text}
       spotlight.className = 'grid-spotlight';
       bgCanvasContainer.appendChild(spotlight);
 
-      // 绑定鼠标追踪
       document.body.addEventListener('mousemove', onGridSpotlightMove);
       document.body.addEventListener('mouseenter', () => gsap.to(spotlight, { opacity: 1, duration: 0.5 }));
       document.body.addEventListener('mouseleave', () => gsap.to(spotlight, { opacity: 0, duration: 0.5 }));
 
-      // 初始渐入
       gsap.to(spotlight, { opacity: 1, duration: 0.8 });
 
     } else if (type === 'neon') {
-      // 赛博霓虹: 细斜线条滑动
       for (let i = 0; i < 6; i++) {
         const beam = document.createElement('div');
         beam.className = 'neon-beam';
@@ -665,7 +770,6 @@ ${text}
         beam.style.top = '-400px';
         bgCanvasContainer.appendChild(beam);
 
-        // 使用 GSAP 模拟斜向下极速滑行
         gsap.to(beam, {
           y: window.innerHeight + 500,
           x: -200,
@@ -676,7 +780,6 @@ ${text}
         });
       }
     } else if (type === 'glass') {
-      // 微光磨砂: 毛玻璃圆盘浮动
       for (let i = 0; i < 4; i++) {
         const shape = document.createElement('div');
         shape.className = 'glass-shape';
@@ -686,7 +789,6 @@ ${text}
         shape.style.top = `${Math.random() * 85}%`;
         bgCanvasContainer.appendChild(shape);
 
-        // GSAP 三维旋转和漂浮
         gsap.to(shape, {
           x: 'random(-80, 80)',
           y: 'random(-80, 80)',
@@ -700,7 +802,6 @@ ${text}
     }
   }
 
-  // 鼠标追踪计算
   function onGridSpotlightMove(e) {
     const spotlight = document.querySelector('.grid-spotlight');
     if (spotlight) {
@@ -715,7 +816,7 @@ ${text}
 
   // 9. UI 事件绑定
 
-  // 切换高级背景环境
+  // 切换工作区背景环境
   bgPresetButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       bgPresetButtons.forEach(b => b.classList.remove('active'));
@@ -723,6 +824,16 @@ ${text}
       const bgType = btn.dataset.bg;
       localStorage.setItem('gzh_bg_type', bgType);
       initEnvironmentBackground(bgType);
+    });
+  });
+
+  // 切换文章外框模板 (公众号最终渲染背景)
+  layoutPresetButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      layoutPresetButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentConfig.layoutTemplate = btn.dataset.layout;
+      render();
     });
   });
 
