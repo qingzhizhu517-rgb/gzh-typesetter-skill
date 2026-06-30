@@ -39,6 +39,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const tabButtons = document.querySelectorAll('.tab-btn');
   const tabContents = document.querySelectorAll('.tab-content');
 
+  // AI 优化元素引用
+  const toggleApiSettings = document.getElementById('toggle-api-settings');
+  const apiSettingsPanel = document.getElementById('api-settings-panel');
+  const apiEndpointInput = document.getElementById('api-endpoint');
+  const apiModelInput = document.getElementById('api-model');
+  const apiKeyInput = document.getElementById('api-key');
+  
+  const aiStyleSelect = document.getElementById('ai-style');
+  const imgKeywordsInput = document.getElementById('img-keywords');
+  const aiOptimizeBtn = document.getElementById('ai-optimize-btn');
+  const aiLoading = document.getElementById('ai-loading');
+  const aiLoadingText = document.getElementById('ai-loading-text');
+
   // 📦 默认配置与主题映射
   const DEFAULT_CONFIG = {
     fontSize: 15,
@@ -75,8 +88,51 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // 1. 初始化本地配置或默认配置
+  // 高清配图图库（精心挑选的 Unsplash 优质无版权免扣图）
+  const IMAGE_DATABASE = {
+    tech: [
+      { id: '1526374965328', desc: '科技数字矩阵', url: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800' },
+      { id: '1518770660435', desc: '人工智能芯片', url: 'https://images.unsplash.com/photo-1518770660435-82b568601dd6?w=800' },
+      { id: '1488590528507', desc: '程序员写代码', url: 'https://images.unsplash.com/photo-1488590528507-98394e3cc809?w=800' }
+    ],
+    office: [
+      { id: '1497369694757', desc: '极简办公室', url: 'https://images.unsplash.com/photo-1497369694757-ea566c30f161?w=800' },
+      { id: '1497215865007', desc: '舒适工作台', url: 'https://images.unsplash.com/photo-1497215865007-010df1593ae2?w=800' },
+      { id: '1515372030562', desc: '工作规划本', url: 'https://images.unsplash.com/photo-1515372030562-46522c03c4f2?w=800' }
+    ],
+    nature: [
+      { id: '1470071459600', desc: '壮丽自然山峦', url: 'https://images.unsplash.com/photo-1470071459600-a15e1001c8e9?w=800' },
+      { id: '1447752875113', desc: '阳光穿透森林', url: 'https://images.unsplash.com/photo-1447752875113-148859052850?w=800' },
+      { id: '1507525428034', desc: '日落海滩远眺', url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800' }
+    ],
+    design: [
+      { id: '1618005182384', desc: '抽象流体艺术', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800' },
+      { id: '1550684848', desc: '3D 几何线条', url: 'https://images.unsplash.com/photo-1550684848-fac3cf8c48d4?w=800' },
+      { id: '1513542789411', desc: '极简创意草图', url: 'https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=800' }
+    ]
+  };
+
+  // 1. 初始化配置与 API
   let currentConfig = { ...DEFAULT_CONFIG };
+
+  // 加载本地存储的 API 配置
+  apiEndpointInput.value = localStorage.getItem('gzh_api_endpoint') || 'https://api.deepseek.com/v1';
+  apiModelInput.value = localStorage.getItem('gzh_api_model') || 'deepseek-chat';
+  apiKeyInput.value = localStorage.getItem('gzh_api_key') || '';
+
+  // API 折叠面板切换
+  toggleApiSettings.addEventListener('click', () => {
+    apiSettingsPanel.classList.toggle('hidden');
+  });
+
+  // 保存 API 配置
+  [apiEndpointInput, apiModelInput, apiKeyInput].forEach(input => {
+    input.addEventListener('change', () => {
+      localStorage.setItem('gzh_api_endpoint', apiEndpointInput.value.trim());
+      localStorage.setItem('gzh_api_model', apiModelInput.value.trim());
+      localStorage.setItem('gzh_api_key', apiKeyInput.value.trim());
+    });
+  });
 
   // 2. 简易 Markdown / 纯文本解析引擎
   function parseTextToWeChatHTML(text) {
@@ -91,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let inList = false;
     let isOrdered = false;
 
-    // 解析偏好缓存 (方便编写内联 style)
+    // 解析偏好缓存
     const pSize = `${currentConfig.fontSize}px`;
     const pColor = currentConfig.colorText;
     const lHeight = currentConfig.lineHeight;
@@ -102,24 +158,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const titleColor = currentConfig.colorTitle;
     const accentColor = currentConfig.colorAccent;
 
-    // 辅助函数：处理粗体及链接等内联样式
     function formatInlineElements(str) {
-      // 1. 转义基础 HTML 实体，避免注入恶意代码，但微信规范中我们需要保留标签所以仅转义尖括号外的内容（由于在此是排版用，直接替换 ** 即可）
       let clean = str;
-      
-      // 2. 解析粗体 **bold**
+      // 解析粗体 **bold**
       clean = clean.replace(/\*\*(.*?)\*\*/g, `<strong style="color: ${accentColor}; font-weight: bold;">$1</strong>`);
-      
-      // 3. 解析超链接 [text](url) -> 微信公众号只支持符合其内部规则的链接，此处转换为符合格式的 <a>
+      // 解析超链接 [text](url)
       clean = clean.replace(/\[(.*?)\]\((.*?)\)/g, `<a href="$2" style="color: ${accentColor}; text-decoration: underline;">$1</a>`);
-      
       return clean;
     }
 
     for (let i = 0; i < lines.length; i++) {
       let line = lines[i].trim();
 
-      // 跳过空行，如果是列表，闭合列表
       if (!line) {
         if (inList) {
           html += isOrdered ? '</ol>' : '</ul>';
@@ -128,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
         continue;
       }
 
-      // 1. 解析 Markdown 主标题 # Main Title
+      // 1. Markdown 主标题
       if (line.startsWith('# ')) {
         const titleText = formatInlineElements(line.substring(2));
         html += `<section style="margin: 0 0 24px 0; padding: 0 ${paddingX}; text-align: center;">
@@ -137,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
         continue;
       }
 
-      // 2. 解析二级标题 ## Subtitle
+      // 2. 二级标题
       if (line.startsWith('## ')) {
         const subTitleText = formatInlineElements(line.substring(3));
         html += `<section style="margin: 32px 0 16px 0; padding: 0 ${paddingX}; border-left: 4px solid ${accentColor}; padding-left: 12px;">
@@ -146,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
         continue;
       }
 
-      // 3. 解析三级小标题 ### Small Title
+      // 3. 三级小标题
       if (line.startsWith('### ')) {
         const smallTitleText = formatInlineElements(line.substring(4));
         html += `<section style="margin: 24px 0 12px 0; padding: 0 ${paddingX};">
@@ -155,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
         continue;
       }
 
-      // 4. 解析引用块 > Quote
+      // 4. 引用块
       if (line.startsWith('> ')) {
         const quoteContent = formatInlineElements(line.substring(2));
         html += `<section style="margin: 16px ${paddingX}; padding: 14px 18px; background-color: #f7f9fc; border-left: 3px solid ${accentColor}; border-radius: 4px;">
@@ -164,7 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
         continue;
       }
 
-      // 5. 解析图片 ![alt](url)
+      // 5. 解析图片
       const imgMatch = line.match(/^!\[(.*?)\]\((.*?)\)$/);
       if (imgMatch) {
         const altText = imgMatch[1];
@@ -175,13 +225,13 @@ document.addEventListener('DOMContentLoaded', () => {
         continue;
       }
 
-      // 6. 解析分割线 ---
+      // 6. 分割线
       if (line === '---' || line === '***') {
         html += `<section style="margin: 32px ${paddingX}; border-top: 1px dashed ${accentColor}; opacity: 0.4;"></section>`;
         continue;
       }
 
-      // 7. 解析列表项目 (无序列表 - or * , 有序列表 1.)
+      // 7. 列表项目
       const isUnorderedItem = line.startsWith('- ') || line.startsWith('* ');
       const isOrderedItem = /^\d+\.\s/.test(line);
 
@@ -199,14 +249,13 @@ document.addEventListener('DOMContentLoaded', () => {
         continue;
       }
 
-      // 8. 普通正文段落
+      // 8. 普通段落
       const paragraphText = formatInlineElements(line);
       html += `<section style="margin: 0 0 16px 0; padding: 0 ${paddingX};">
                 <p style="font-size: ${pSize}; color: ${pColor}; line-height: ${lHeight}; letter-spacing: ${lSpacing}; text-align: justify; ${indent} margin: 0;">${paragraphText}</p>
               </section>`;
     }
 
-    // 闭合可能存在的未完成列表
     if (inList) {
       html += isOrdered ? '</ol>' : '</ul>';
     }
@@ -214,19 +263,15 @@ document.addEventListener('DOMContentLoaded', () => {
     return html;
   }
 
-  // 3. 渲染页面和更新代码
+  // 3. 渲染预览
   function render() {
     const rawText = rawInput.value;
     const finalHTML = parseTextToWeChatHTML(rawText);
-    
-    // 注入预览模拟器中
     previewFrame.innerHTML = finalHTML;
-    
-    // 格式化输出源码
     htmlOutputCode.textContent = finalHTML;
   }
 
-  // 4. 读取表单状态并同步
+  // 4. UI 状态同步
   function updateConfigFromUI() {
     currentConfig.fontSize = parseInt(fontSizeSlider.value);
     currentConfig.lineHeight = parseFloat(lineHeightSlider.value);
@@ -239,26 +284,20 @@ document.addEventListener('DOMContentLoaded', () => {
     currentConfig.colorText = colorText.value;
     currentConfig.colorAccent = colorAccent.value;
 
-    // 同步文字显示
     fontSizeVal.textContent = `${currentConfig.fontSize}px`;
     lineHeightVal.textContent = currentConfig.lineHeight;
     letterSpacingVal.textContent = `${currentConfig.letterSpacing}px`;
     marginVal.textContent = `${currentConfig.margin}px`;
     borderRadiusVal.textContent = `${currentConfig.borderRadius}px`;
 
-    // 更新 Hex 标签
     colorTitle.nextElementSibling.textContent = currentConfig.colorTitle;
     colorText.nextElementSibling.textContent = currentConfig.colorText;
     colorAccent.nextElementSibling.textContent = currentConfig.colorAccent;
 
-    // 清除预设的高亮状态 (如果颜色被微调)
     checkIfMatchesPreset();
-
-    // 触发渲染
     render();
   }
 
-  // 5. 将配置应用到 UI
   function applyConfigToUI(config) {
     fontSizeSlider.value = config.fontSize;
     lineHeightSlider.value = config.lineHeight;
@@ -271,11 +310,9 @@ document.addEventListener('DOMContentLoaded', () => {
     colorText.value = config.colorText;
     colorAccent.value = config.colorAccent;
 
-    // 手动刷新文本及参数
     updateConfigFromUI();
   }
 
-  // 检查是否完美匹配某个主题预设，给按钮添加 active 样式
   function checkIfMatchesPreset() {
     let matchedPreset = null;
     for (const [name, preset] of Object.entries(THEME_PRESETS)) {
@@ -296,9 +333,196 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 6. UI 事件绑定
+  // 5. AI 一键优化与智能配图引擎 (核心添加)
+  async function runAIOptimization() {
+    const text = rawInput.value.trim();
+    if (!text) {
+      alert('请先输入一些文章内容再进行 AI 优化！');
+      return;
+    }
 
-  // 滑块与输入事件
+    const endpoint = apiEndpointInput.value.trim();
+    const model = apiModelInput.value.trim();
+    const apiKey = apiKeyInput.value.trim();
+    const style = aiStyleSelect.value;
+    const customKeywords = imgKeywordsInput.value.trim();
+
+    // 显示 Loading 状态
+    aiLoading.classList.remove('hidden');
+    aiOptimizeBtn.disabled = true;
+    aiOptimizeBtn.style.opacity = '0.7';
+
+    // 确定文章配图主题分类
+    let themeCategory = 'design'; // 默认
+    const lowText = text.toLowerCase();
+    if (lowText.includes('科技') || lowText.includes('ai') || lowText.includes('人工智能') || lowText.includes('电脑') || lowText.includes('算法')) {
+      themeCategory = 'tech';
+    } else if (lowText.includes('工作') || lowText.includes('职场') || lowText.includes('效率') || lowText.includes('企业') || lowText.includes('团队')) {
+      themeCategory = 'office';
+    } else if (lowText.includes('自然') || lowText.includes('生活') || lowText.includes('旅行') || lowText.includes('思考') || lowText.includes('海') || lowText.includes('阳光')) {
+      themeCategory = 'nature';
+    }
+
+    const pickedImages = IMAGE_DATABASE[themeCategory];
+
+    // 情况一：使用真实大模型 API 接口
+    if (apiKey) {
+      aiLoadingText.textContent = `正在连接 AI 模型 ${model} 进行润色...`;
+
+      // 配图指引提示词
+      const imgGuide = pickedImages.map(img => `- ${img.desc}: ![${img.desc}](${img.url})`).join('\n');
+      
+      const prompt = `您是一个顶尖的微信公众号排版与润色助理。请对以下文章进行重新润色与排版。
+排版规则：
+1. 请保持文章的核心意思和语句基本完整，但可以使用更生动、适合公众号阅读的表达。
+2. 重新梳理层次：添加醒目的分级标题，并在标题前适当加上一两个匹配的 Emoji 图标。
+3. 突出核心词汇：将重要的重点词汇包裹在 **加粗** 语法中。
+4. 穿插图片：根据上下文，在合适且均衡的位置（如第一段之后，以及文章中后部）合理插入 1-2 张高清图片。
+   你必须只能从以下候选图片中挑选（使用标准的 Markdown 语法 \`![图片描述](URL)\` 插入）：
+${imgGuide}
+5. 根据排版风格：[${style}] 对内容进行相应的微调。
+   - tech: 分条明晰，多用 emoji 列表，行文干练
+   - warm: 更加诗意、暖心，语气柔和
+   - business: 结构规整，多用有序数字列表，表达严谨
+   - minimalist: 简洁大方，段落分明，留白舒适
+
+待优化的文章内容：
+---
+${text}
+---
+
+请直接输出优化后的 Markdown 正文，不要包含任何前言、后记或 Markdown 外包裹符号。`;
+
+      try {
+        const response = await fetch(`${endpoint}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [
+              { role: 'system', content: '你是一个专业的微信公众号内容优化器，直接返回排版好的 Markdown 文本，绝不废话。' },
+              { role: 'user', content: prompt }
+            ],
+            temperature: 0.7
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error?.message || `HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        let resultMarkdown = data.choices[0].message.content.trim();
+        
+        // 过滤掉大模型可能附带输出的 ```markdown ``` 标签
+        resultMarkdown = resultMarkdown.replace(/^```markdown\n/i, '').replace(/\n```$/, '').replace(/^```\n/i, '');
+
+        rawInput.value = resultMarkdown;
+        showToast('✨ AI 智能润色及配图已完成！');
+      } catch (err) {
+        console.error('AI API 请求失败: ', err);
+        alert(`AI 接口请求失败 (${err.message})，即将降级为本地规则引擎进行优化配图。`);
+        runLocalOptimization(text, style, pickedImages);
+      }
+    } else {
+      // 情况二：使用本地排版引擎 (无 API Key)
+      runLocalOptimization(text, style, pickedImages);
+    }
+
+    // 收尾：隐藏 Loading 状态
+    aiLoading.classList.add('hidden');
+    aiOptimizeBtn.disabled = false;
+    aiOptimizeBtn.style.opacity = '1';
+  }
+
+  // 本地轻量化优化引擎
+  function runLocalOptimization(text, style, pickedImages) {
+    aiLoadingText.textContent = "分析文章主体结构...";
+    
+    setTimeout(() => {
+      aiLoadingText.textContent = "寻找并匹配高清图片...";
+      
+      setTimeout(() => {
+        aiLoadingText.textContent = "美化字间距与标题图标...";
+        
+        // 执行规则润色
+        const lines = text.split('\n');
+        let newLines = [];
+        let headingCount = 0;
+        
+        // 预设 Emoji 库
+        const titleEmojis = ['💡', '🚀', '🔥', '🎨', '🌟', '💎', '📌', '🎯'];
+
+        for (let i = 0; i < lines.length; i++) {
+          let line = lines[i].trim();
+          if (!line) {
+            newLines.push('');
+            continue;
+          }
+
+          // 给大标题加标志
+          if (line.startsWith('# ')) {
+            const headingText = line.substring(2);
+            newLines.push(`# 🌟 ${headingText} 🌟`);
+            
+            // 在大标题下方插入第一张图
+            if (pickedImages.length > 0) {
+              newLines.push('');
+              newLines.push(`![${pickedImages[0].desc}](${pickedImages[0].url})`);
+            }
+            continue;
+          }
+
+          // 给二级标题加 emoji
+          if (line.startsWith('## ')) {
+            const headingText = line.substring(3);
+            const emoji = titleEmojis[headingCount % titleEmojis.length];
+            newLines.push(`## ${emoji} ${headingText}`);
+            headingCount++;
+            continue;
+          }
+
+          // 给重点词语进行本地模拟高亮 (比如加粗"排版"、"阅读体验"、"价值"等词)
+          const keywords = ['排版', '阅读体验', '微信公众号', '人工智能', '设计', '核心', '价值', '内容', '沉浸式'];
+          keywords.forEach(word => {
+            const regex = new RegExp(`(?<!\\*\\*)${word}(?!\\*\\*)`, 'g');
+            line = line.replace(regex, `**${word}**`);
+          });
+
+          newLines.push(line);
+
+          // 在文章中间位置（约 60% 处）插入第二张配图
+          if (i === Math.floor(lines.length * 0.6) && pickedImages.length > 1) {
+            newLines.push('');
+            newLines.push(`![${pickedImages[1].desc}](${pickedImages[1].url})`);
+          }
+        }
+
+        rawInput.value = newLines.join('\n');
+        
+        // 根据风格应用预设主题颜色
+        if (style === 'tech') {
+          applyConfigToUI({ ...DEFAULT_CONFIG, ...THEME_PRESETS.default });
+        } else if (style === 'warm') {
+          applyConfigToUI({ ...DEFAULT_CONFIG, ...THEME_PRESETS.warm });
+        } else if (style === 'business') {
+          applyConfigToUI({ ...DEFAULT_CONFIG, ...THEME_PRESETS.forest });
+        } else if (style === 'minimalist') {
+          applyConfigToUI({ ...DEFAULT_CONFIG, ...THEME_PRESETS.gold });
+        }
+
+        showToast('✨ 已完成本地规则优化与智能配图！');
+      }, 800);
+    }, 800);
+  }
+
+  // 6. UI 事件绑定与处理
+
+  // 滑动条事件
   [fontSizeSlider, lineHeightSlider, letterSpacingSlider, marginSlider, borderRadiusSlider, indentCheckbox].forEach(el => {
     el.addEventListener('input', updateConfigFromUI);
     el.addEventListener('change', updateConfigFromUI);
@@ -308,10 +532,10 @@ document.addEventListener('DOMContentLoaded', () => {
     el.addEventListener('input', updateConfigFromUI);
   });
 
-  // 输入区域发生变化时重新渲染
+  // 输入变化实时更新
   rawInput.addEventListener('input', render);
 
-  // 切换快捷预设主题
+  // 快捷主题切换
   presetButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       const presetName = btn.dataset.theme;
@@ -331,7 +555,7 @@ document.addEventListener('DOMContentLoaded', () => {
     applyConfigToUI(currentConfig);
   });
 
-  // Tab 切换逻辑
+  // Tab 面板切换
   tabButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       tabButtons.forEach(b => b.classList.remove('active'));
@@ -343,21 +567,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // 复制 HTML 功能
+  // 一键复制代码
   copyBtn.addEventListener('click', () => {
     const htmlCode = parseTextToWeChatHTML(rawInput.value);
     
     navigator.clipboard.writeText(htmlCode)
       .then(() => {
-        // 显示 Toast 提示
-        toast.classList.add('show');
-        setTimeout(() => {
-          toast.classList.remove('show');
-        }, 2500);
+        showToast('复制成功！请直接粘贴到公众号源码模式');
       })
       .catch(err => {
-        console.error('无法复制代码: ', err);
-        alert('复制失败，请手动在【公众号 HTML 源码】标签页中全选复制代码。');
+        console.error('复制失败: ', err);
+        alert('复制失败，请在 HTML 源码页中手动全选复制。');
       });
   });
 
@@ -369,7 +589,6 @@ document.addEventListener('DOMContentLoaded', () => {
   themeToggle.addEventListener('click', () => {
     const currentTheme = document.documentElement.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem('theme', newTheme);
     updateThemeIcon(newTheme);
@@ -383,23 +602,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 📝 载入示例文章，供初始展示
+  // Toast 弹框逻辑
+  function showToast(message) {
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => {
+      toast.classList.remove('show');
+    }, 2500);
+  }
+
+  // AI 优化事件绑定
+  aiOptimizeBtn.addEventListener('click', runAIOptimization);
+
+  // 📝 初始示例内容
   const sampleArticle = `# 关于人工智能时代的思考
 ## AI 变革的浪潮
-在今天，我们正在经历一场前所未有的人工智能（AI）革命。从自然语言处理到图像自动生成，AI 已经深入到了各行各业，扮演着赋能者和加速器的角色。
+在今天，我们正在经历一场前所未个人工智能革命。从自然语言处理到图像自动生成，AI 已经深入到了各行各业，扮演着赋能者和加速器的角色。
 
-作为一名内容创作者，如何利用好这股浪潮？我们需要在规范的排版中注入思考，同时保持**阅读体验的自然与美观**。
+作为一名内容创作者，如何利用好这股浪潮？我们需要在规范的排版中注入思考，同时保持阅读体验的自然与美观。
 
 > "AI 不会淘汰人类，但使用 AI 的人会淘汰不使用的人。" 
 
 ## 排版的黄金法则
-为了让读者能够在移动端拥有卓越的沉浸式体验，以下是我们所倡导的几条**排版黄金法则**：
+为了让读者能够在移动端拥有卓越的沉浸式体验，以下是我们所倡导的几条排版黄金法则：
 
-- **合理的间距**：行距保持在 1.75 左右最为舒适，不拥挤也容易跳行。
-- **适度的色彩**：控制页面内的颜色数量不超过 3 种，首尾呼应，能够极大提升文章的高级感。
-- **图片的和谐**：图片最好带上浅浅的圆角以及极其微弱的阴影，这能够使其更容易融入背景。
-
-![](https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe)
+- 合理的间距：行距保持在 1.75 左右最为舒适，不拥挤也容易跳行。
+- 适度的色彩：控制页面内的颜色数量不超过 3 种，首尾呼应，能够极大提升文章的高级感。
+- 图片的和谐：图片最好带上浅浅的圆角以及极其微弱的阴影，这能够使其更容易融入背景。
 
 最后，排版只是一种辅助手段，最核心的依然是内容本身的质量和您传递给读者的价值！`;
 
