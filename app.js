@@ -36,9 +36,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // 预设主题按钮
   const presetButtons = document.querySelectorAll('.theme-preset-btn');
   
-  // Tab 切换按钮
+  // 右侧 Tab 切换按钮
   const tabButtons = document.querySelectorAll('.tab-btn');
   const tabContents = document.querySelectorAll('.tab-content');
+
+  // 左侧 Tab 切换按钮
+  const leftTabButtons = document.querySelectorAll('.left-tab-btn');
+  const leftTabContents = document.querySelectorAll('.left-tab-content');
 
   // AI 优化与导入按钮
   const toggleApiSettings = document.getElementById('toggle-api-settings');
@@ -415,6 +419,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (markdown) {
         rawInput.value = markdown;
         render();
+        // 自动切回到“文章编辑”标签页
+        document.querySelector('.left-tab-btn[data-left-tab="content"]').click();
         showToast('📥 成功从本地 output.html 恢复排版与图片！');
       } else {
         previewFrame.innerHTML = htmlText;
@@ -467,7 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
 1. 请保持文章的核心意思和语句基本完整，但可以使用更生动、适合公众号阅读的表达。
 2. 重新梳理层次：添加醒目的分级标题，并在标题前适当加上一两个匹配的 Emoji 图标。
 3. 突出核心词汇：将重要的重点词汇包裹在 **加粗** 语法中。
-4. 穿插图片：根据上下文，在合适且均衡的位置（如第一段之后，以及文章中后部）合理插入 1-2 张高清图片。
+4. 穿写图片：根据上下文，在合适且均衡的位置（如第一段之后，以及文章中后部）合理插入 1-2 张高清图片。
    你必须只能从以下候选图片中挑选（使用标准的 Markdown 语法 \`![图片描述](URL)\` 插入）：
 ${imgGuide}
 5. 根据排版风格：[${style}] 对内容进行相应的微调。
@@ -511,6 +517,8 @@ ${text}
         resultMarkdown = resultMarkdown.replace(/^```markdown\n/i, '').replace(/\n```$/, '').replace(/^```\n/i, '');
 
         rawInput.value = resultMarkdown;
+        // 自动切回到“文章编辑”标签页
+        document.querySelector('.left-tab-btn[data-left-tab="content"]').click();
         showToast('✨ AI 智能润色及配图已完成！');
       } catch (err) {
         console.error('AI API 请求失败: ', err);
@@ -593,12 +601,38 @@ ${text}
           applyConfigToUI({ ...DEFAULT_CONFIG, ...THEME_PRESETS.gold });
         }
 
+        // 自动切回到“文章编辑”标签页
+        document.querySelector('.left-tab-btn[data-left-tab="content"]').click();
         showToast('✨ 已完成本地规则优化与智能配图！');
       }, 800);
     }, 800);
   }
 
   // 7. UI 事件绑定
+
+  // 左侧 Tab 切换
+  leftTabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      leftTabButtons.forEach(b => b.classList.remove('active'));
+      leftTabContents.forEach(c => c.classList.remove('active'));
+
+      btn.classList.add('active');
+      const tabId = `left-tab-${btn.dataset.leftTab}`;
+      document.getElementById(tabId).classList.add('active');
+    });
+  });
+
+  // 右侧 Tab 切换
+  tabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabButtons.forEach(b => b.classList.remove('active'));
+      tabContents.forEach(c => c.classList.remove('active'));
+
+      btn.classList.add('active');
+      const tabId = `tab-${btn.dataset.tab}`;
+      document.getElementById(tabId).classList.add('active');
+    });
+  });
 
   [fontSizeSlider, lineHeightSlider, letterSpacingSlider, marginSlider, borderRadiusSlider, indentCheckbox].forEach(el => {
     el.addEventListener('input', updateConfigFromUI);
@@ -629,17 +663,6 @@ ${text}
     applyConfigToUI(currentConfig);
   });
 
-  tabButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      tabButtons.forEach(b => b.classList.remove('active'));
-      tabContents.forEach(c => c.classList.remove('active'));
-
-      btn.classList.add('active');
-      const tabId = `tab-${btn.dataset.tab}`;
-      document.getElementById(tabId).classList.add('active');
-    });
-  });
-
   // 💻 复制 HTML 源码
   copyBtn.addEventListener('click', () => {
     const htmlCode = parseTextToWeChatHTML(rawInput.value);
@@ -654,11 +677,10 @@ ${text}
       });
   });
 
-  // 📋 一键复制富文本 (直贴微信公众号正文 - 核心添加)
+  // 📋 一键复制富文本
   copyRichBtn.addEventListener('click', () => {
     const htmlCode = parseTextToWeChatHTML(rawInput.value);
     
-    // 创建 MIME 类型为 text/html 的 Blob
     const blobHTML = new Blob([htmlCode], { type: 'text/html' });
     const blobText = new Blob([previewFrame.innerText], { type: 'text/plain' });
     
@@ -673,7 +695,6 @@ ${text}
       })
       .catch(err => {
         console.error('富文本复制失败: ', err);
-        // 降级使用 Range 选择进行富文本复制
         try {
           const range = document.createRange();
           range.selectNode(previewFrame);
@@ -726,7 +747,7 @@ ${text}
 ## AI 变革的浪潮
 在今天，我们正在经历一场前所未有的人工智能革命。从自然语言处理到图像自动生成，AI 已经深入到了各行各业，扮演着赋能者和加速器的角色。
 
-作为一名内容创作者，如何利用好这股浪潮？我们需要在规范的排版中注入思考，同时保持阅读体验 of 自然与美观。
+作为一名内容创作者，如何利用好这股浪潮？我们需要在规范的排版中注入思考，同时保持阅读体验的自然与美观。
 
 > "AI 不会淘汰人类，但使用 AI 的人会淘汰不使用的人。" 
 
@@ -742,6 +763,7 @@ ${text}
   rawInput.value = sampleArticle;
   applyConfigToUI(DEFAULT_CONFIG);
   
+  // 自动尝试静默载入已排版的 output.html
   fetch('output.html', { cache: 'no-store' })
     .then(res => {
       if (res.ok) {
